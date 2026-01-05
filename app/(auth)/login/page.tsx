@@ -80,8 +80,8 @@ export default function LoginPage() {
       if (result.data?.user) {
         console.log('SignUp success, redirecting...')
         // Redireciona mesmo sem confirmação de e-mail
-        router.push('/products')
-        router.refresh()
+        // Use window.location para forçar reload completo e garantir que cookies sejam enviados
+        window.location.href = '/products'
       } else {
         console.error('SignUp: No user in response')
         setError('Falha ao criar conta. Tente novamente.')
@@ -129,8 +129,8 @@ export default function LoginPage() {
 
       if (result.data?.user) {
         console.log('SignIn success, redirecting...')
-        router.push('/products')
-        router.refresh()
+        // Use window.location para forçar reload completo e garantir que cookies sejam enviados
+        window.location.href = '/products'
       } else {
         console.error('SignIn: No user in response')
         setError('Falha ao fazer login. Tente novamente.')
