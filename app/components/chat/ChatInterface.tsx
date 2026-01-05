@@ -25,6 +25,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   const [showVeredictForm, setShowVeredictForm] = useState(false)
   const [suggestedTitle, setSuggestedTitle] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -34,6 +35,14 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    // Focar o input quando o componente é montado ou conversationId muda
+    setTimeout(() => {
+      inputRef.current?.focus()
+      adjustTextareaHeight()
+    }, 100)
+  }, [conversationId])
 
   async function fetchMessages() {
     const { data, error } = await supabase
@@ -53,6 +62,20 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  function adjustTextareaHeight() {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend(e as any)
+    }
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!input.trim() || loading) return
@@ -60,6 +83,14 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     const userContent = input.trim()
     setInput('')
     setLoading(true)
+    
+    // Resetar altura e restaurar foco no input após limpar o campo
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+      }
+      inputRef.current?.focus()
+    }, 0)
 
     // Save user message
     const { data: userMessage, error: userError } = await supabase
@@ -75,6 +106,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     if (userError) {
       console.error('Error saving user message:', userError)
       setLoading(false)
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
       return
     }
 
@@ -89,6 +123,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       setSuggestedTitle(verdictSignal.suggestedTitle)
       setShowVeredictForm(true)
       setLoading(false)
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
       return
     }
 
@@ -123,6 +160,11 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     }
 
     setLoading(false)
+    
+    // Restaurar foco no input após processar a mensagem
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 0)
   }
 
   async function handleVeredictConfirm(title: string, pain: string, value: string, notes?: string) {
@@ -255,10 +297,15 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
             display: 'flex',
             gap: '0.75rem',
           }}>
-            <input
-              type="text"
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value)
+                adjustTextareaHeight()
+              }}
+              onKeyDown={handleKeyDown}
               placeholder="Conte-me sobre o que está te incomodando..."
               disabled={loading}
               style={{
@@ -267,6 +314,12 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
                 border: '1px solid #e5e5e5',
                 borderRadius: '0.5rem',
                 fontSize: '1rem',
+                resize: 'none',
+                overflow: 'hidden',
+                minHeight: '2.75rem',
+                maxHeight: '200px',
+                lineHeight: '1.5',
+                fontFamily: 'inherit',
               }}
             />
             <button
