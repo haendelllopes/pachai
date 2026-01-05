@@ -51,17 +51,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      
-      // Verificar se as variáveis de ambiente estão definidas
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        setError('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.')
-        setLoading(false)
-        console.error('Supabase env vars missing:', {
-          url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-          key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        })
-        return
-      }
+      console.log('Attempting sign up...')
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
@@ -109,17 +99,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      
-      // Verificar se as variáveis de ambiente estão definidas
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        setError('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.')
-        setLoading(false)
-        console.error('Supabase env vars missing:', {
-          url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-          key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        })
-        return
-      }
+      console.log('Attempting sign in...')
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
