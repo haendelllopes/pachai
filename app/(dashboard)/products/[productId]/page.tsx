@@ -49,12 +49,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
       .select()
       .single()
 
-    if (error) {
+    if (error || !newConversation) {
       console.error('Error creating conversation:', error)
       redirect('/products')
     }
 
     conversation = newConversation
+  }
+
+  // Final check to ensure conversation exists
+  if (!conversation) {
+    redirect('/products')
   }
 
   return (
