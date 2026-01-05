@@ -27,20 +27,23 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Permitir acesso a /login e /auth sem verificação de sessão
   const pathname = request.nextUrl.pathname
+
+  // Garantir que /login seja rota pública - permitir acesso sem verificação
   if (pathname === '/login' || pathname.startsWith('/auth')) {
     return supabaseResponse
   }
 
-  // Verificar sessão apenas para rotas protegidas
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Proteger apenas rotas /products/:path*
+  if (pathname.startsWith('/products')) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  // Redirecionar apenas quando não existir sessão válida e tentar acessar rotas protegidas
-  if (!session && pathname.startsWith('/products')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    // Redirecionar apenas quando não existir sessão válida
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
 
   return supabaseResponse

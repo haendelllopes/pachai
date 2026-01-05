@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
 
 type Mode = 'signin' | 'signup'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -74,15 +76,17 @@ export default function LoginPage() {
 
       // Aguardar data.session antes de redirecionar
       if (result.data?.session) {
-        console.log('SignUp success, session established, redirecting...')
-        window.location.href = '/products'
+        console.log('SignUp success, session established, refreshing router and redirecting...')
+        router.refresh()
+        router.push('/products')
       } else if (result.data?.user) {
         // Se não houver sessão imediatamente, aguardar e verificar novamente
         await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established after wait, redirecting...')
-          window.location.href = '/products'
+          console.log('Session established after wait, refreshing router and redirecting...')
+          router.refresh()
+          router.push('/products')
         } else {
           console.error('Session not established yet')
           setError('Erro ao estabelecer sessão. Tente novamente.')
@@ -135,15 +139,17 @@ export default function LoginPage() {
 
       // Aguardar data.session antes de redirecionar
       if (result.data?.session) {
-        console.log('Session established, redirecting...')
-        window.location.href = '/products'
+        console.log('Session established, refreshing router and redirecting...')
+        router.refresh()
+        router.push('/products')
       } else {
         // Se não houver sessão imediatamente, aguardar e verificar novamente
         await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established after wait, redirecting...')
-          window.location.href = '/products'
+          console.log('Session established after wait, refreshing router and redirecting...')
+          router.refresh()
+          router.push('/products')
         } else {
           console.error('Session not established')
           setError('Erro ao estabelecer sessão. Tente novamente.')
