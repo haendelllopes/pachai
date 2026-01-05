@@ -2,12 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Skip middleware for auth routes and static files
-  const pathname = request.nextUrl.pathname
-  if (pathname === '/login' || pathname === '/auth/callback') {
-    return NextResponse.next()
-  }
-
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -33,13 +27,19 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Permitir acesso a /login e /auth sem verificação de sessão
+  const pathname = request.nextUrl.pathname
+  if (pathname === '/login' || pathname.startsWith('/auth')) {
+    return supabaseResponse
+  }
 
-  // Protect dashboard routes
-  if (pathname.startsWith('/products') && !user) {
+  // Verificar sessão apenas para rotas protegidas
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Redirecionar apenas quando não existir sessão válida e tentar acessar rotas protegidas
+  if (!session && pathname.startsWith('/products')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

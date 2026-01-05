@@ -72,15 +72,16 @@ export default function LoginPage() {
         return
       }
 
-      if (result.data?.user) {
-        console.log('SignUp success, establishing session...')
-        // Aguardar um pouco para garantir que os cookies sejam persistidos
-        await new Promise(resolve => setTimeout(resolve, 100))
-        // Verificar se a sessão está estabelecida antes de redirecionar
+      // Aguardar data.session antes de redirecionar
+      if (result.data?.session) {
+        console.log('SignUp success, session established, redirecting...')
+        window.location.href = '/products'
+      } else if (result.data?.user) {
+        // Se não houver sessão imediatamente, aguardar e verificar novamente
+        await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established, redirecting...')
-          // Redireciona mesmo sem confirmação de e-mail
+          console.log('Session established after wait, redirecting...')
           window.location.href = '/products'
         } else {
           console.error('Session not established yet')
@@ -132,17 +133,18 @@ export default function LoginPage() {
         return
       }
 
-      if (result.data?.user) {
-        console.log('SignIn success, establishing session...')
-        // Aguardar um pouco para garantir que os cookies sejam persistidos
-        await new Promise(resolve => setTimeout(resolve, 100))
-        // Verificar se a sessão está estabelecida antes de redirecionar
+      if (result.data?.session) {
+        console.log('Session established, redirecting...')
+        window.location.href = '/products'
+      } else if (result.data?.user) {
+        // Se não houver sessão mas houver user, aguardar um pouco e verificar novamente
+        await new Promise(resolve => setTimeout(resolve, 200))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established, redirecting...')
+          console.log('Session established after wait, redirecting...')
           window.location.href = '/products'
         } else {
-          console.error('Session not established yet')
+          console.error('Session not established')
           setError('Erro ao estabelecer sessão. Tente novamente.')
           setLoading(false)
         }
