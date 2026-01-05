@@ -17,12 +17,8 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (mounted) return // Prevenir múltiplas execuções
     setMounted(true)
-    // Debug: verificar se as variáveis de ambiente estão disponíveis
-    console.log('Login page mounted')
-    console.log('Supabase URL available:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-  }, [mounted])
+  }, [])
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
