@@ -57,6 +57,7 @@ export default async function LoginPage() {
         <form action={signInWithGoogle}>
           <button
             type="submit"
+            className="landing-button"
             style={{
               width: '100%',
               padding: '0.75rem 2rem',
@@ -66,12 +67,6 @@ export default async function LoginPage() {
               fontSize: '1rem',
               fontWeight: 500,
               transition: 'background 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#333'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#1a1a1a'
             }}
           >
             Continuar com Google

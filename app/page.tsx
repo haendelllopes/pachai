@@ -45,6 +45,7 @@ export default function LandingPage() {
       
       <Link
         href="/login"
+        className="landing-button"
         style={{
           padding: '0.75rem 2rem',
           background: '#1a1a1a',
@@ -53,12 +54,8 @@ export default function LandingPage() {
           fontSize: '1rem',
           fontWeight: 500,
           transition: 'background 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#333'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#1a1a1a'
+          display: 'inline-block',
+          textDecoration: 'none',
         }}
       >
         Começar

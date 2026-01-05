@@ -38,3 +38,7 @@ textarea {
   outline: none;
 }
 
+.landing-button:hover {
+  background: #333 !important;
+}
+
