@@ -33,14 +33,7 @@ export default function NewProductPage() {
 
       if (productError) throw productError
 
-      // Create conversation automatically
-      const { error: conversationError } = await supabase
-        .from('conversations')
-        .insert({ product_id: product.id })
-
-      if (conversationError) throw conversationError
-
-      // Redirect to product chat
+      // Redirect to product page (without conversation)
       router.push(`/products/${product.id}`)
     } catch (error) {
       console.error('Error creating product:', error)

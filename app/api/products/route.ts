@@ -51,16 +51,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: productError.message }, { status: 500 })
   }
 
-  // Create conversation automatically (V1: 1 product = 1 conversation)
-  const { error: conversationError } = await supabase
-    .from('conversations')
-    .insert({ product_id: product.id })
-
-  if (conversationError) {
-    // If conversation creation fails, still return the product
-    console.error('Error creating conversation:', conversationError)
-  }
-
   return NextResponse.json(product)
 }
 

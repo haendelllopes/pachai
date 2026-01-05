@@ -1,20 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import ChatInterface from '@/app/components/chat/ChatInterface'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
+
+interface Conversation {
+  id: string
+  title: string | null
+  created_at: string
+}
 
 export default function ProductPage() {
   const params = useParams()
+  const router = useRouter()
   const productId = params.productId as string
   
   const [productName, setProductName] = useState<string>('')
-  const [conversationId, setConversationId] = useState<string>('')
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const [creatingConversation, setCreatingConversation] = useState(false)
 
   useEffect(() => {
-    async function loadProductAndConversation() {
+    async function loadProductAndConversations() {
       const supabase = createClient()
 
       // Buscar dados do produto
@@ -34,47 +41,53 @@ export default function ProductPage() {
         setProductName(product.name)
       }
 
-      // Buscar conversa existente (V1: 1 produto = 1 conversa)
-      const { data: existingConversation, error: conversationError } = await supabase
+      // Buscar conversas do projeto
+      const { data: conversationsData, error: conversationsError } = await supabase
         .from('conversations')
-        .select('id')
+        .select('id, title, created_at')
         .eq('product_id', productId)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
+        .order('created_at', { ascending: false })
 
-      if (conversationError) {
-        console.error('Error fetching conversation:', conversationError)
-        setLoading(false)
-        return
-      }
-
-      // Se não existir conversa, criar uma nova
-      if (!existingConversation) {
-        const { data: newConversation, error: createError } = await supabase
-          .from('conversations')
-          .insert({ product_id: productId })
-          .select()
-          .single()
-
-        if (createError || !newConversation) {
-          console.error('Error creating conversation:', createError)
-          setLoading(false)
-          return
-        }
-
-        setConversationId(newConversation.id)
+      if (conversationsError) {
+        console.error('Error fetching conversations:', conversationsError)
       } else {
-        setConversationId(existingConversation.id)
+        setConversations(conversationsData || [])
       }
 
       setLoading(false)
     }
 
     if (productId) {
-      loadProductAndConversation()
+      loadProductAndConversations()
     }
   }, [productId])
+
+  async function handleCreateConversation() {
+    if (creatingConversation) return
+
+    setCreatingConversation(true)
+    const supabase = createClient()
+
+    try {
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({ product_id: productId })
+        .select()
+        .single()
+
+      if (createError || !newConversation) {
+        console.error('Error creating conversation:', createError)
+        setCreatingConversation(false)
+        return
+      }
+
+      // Redirecionar para a nova conversa
+      router.push(`/products/${productId}/conversations/${newConversation.id}`)
+    } catch (error) {
+      console.error('Error creating conversation:', error)
+      setCreatingConversation(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -90,25 +103,6 @@ export default function ProductPage() {
           fontSize: '1rem',
         }}>
           Carregando...
-        </div>
-      </div>
-    )
-  }
-
-  if (!conversationId) {
-    return (
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-      }}>
-        <div style={{
-          color: '#888',
-          fontSize: '1rem',
-        }}>
-          Erro ao carregar conversa
         </div>
       </div>
     )
@@ -143,11 +137,135 @@ export default function ProductPage() {
           Um espaço para explorar decisões e registrar vereditos conscientes
         </p>
       </div>
-      
-      <ChatInterface
-        productId={productId}
-        conversationId={conversationId}
-      />
+
+      {conversations.length === 0 ? (
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+        }}>
+          <div style={{
+            maxWidth: '500px',
+            textAlign: 'center',
+          }}>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: 600,
+              marginBottom: '1rem',
+              color: '#1a1a1a',
+            }}>
+              Nenhuma conversa ainda
+            </h2>
+            <p style={{
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              marginBottom: '2rem',
+              color: '#666',
+            }}>
+              Comece uma nova conversa para explorar decisões e registrar vereditos conscientes.
+            </p>
+            <button
+              onClick={handleCreateConversation}
+              disabled={creatingConversation}
+              style={{
+                padding: '0.75rem 2rem',
+                background: creatingConversation ? '#ccc' : '#1a1a1a',
+                color: '#ffffff',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: 500,
+                cursor: creatingConversation ? 'not-allowed' : 'pointer',
+                border: 'none',
+              }}
+            >
+              {creatingConversation ? 'Criando...' : '+ Nova conversa'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          flex: 1,
+          padding: '2rem',
+          overflowY: 'auto',
+        }}>
+          <div style={{
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <h2 style={{
+              fontSize: '1.25rem',
+              fontWeight: 600,
+              color: '#1a1a1a',
+            }}>
+              Conversas
+            </h2>
+            <button
+              onClick={handleCreateConversation}
+              disabled={creatingConversation}
+              style={{
+                padding: '0.5rem 1rem',
+                background: creatingConversation ? '#ccc' : '#1a1a1a',
+                color: '#ffffff',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                cursor: creatingConversation ? 'not-allowed' : 'pointer',
+                border: 'none',
+              }}
+            >
+              {creatingConversation ? 'Criando...' : '+ Nova conversa'}
+            </button>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+          }}>
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                onClick={() => router.push(`/products/${productId}/conversations/${conversation.id}`)}
+                style={{
+                  padding: '1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  background: '#ffffff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#1a1a1a'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e5e5e5'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div style={{
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  color: '#1a1a1a',
+                  marginBottom: '0.25rem',
+                }}>
+                  {conversation.title || 'Nova conversa'}
+                </div>
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#888',
+                }}>
+                  {new Date(conversation.created_at).toLocaleDateString('pt-BR')}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
