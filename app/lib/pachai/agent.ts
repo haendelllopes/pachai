@@ -59,7 +59,7 @@ export function generatePachaiResponse(messages: Message[]): string {
   const lastUserMessage = userMessages[userMessages.length - 1] || ''
   
   // Verificar se há veredito sinalizado
-  const verdictSignal = detectVeredictSignal(userMessages.map(m => m.content))
+  const verdictSignal = detectVeredictSignal(userMessages)
   if (verdictSignal.detected && verdictSignal.suggestedTitle) {
     return `Posso registrar esta conversa como: "${verdictSignal.suggestedTitle}"?`
   }
