@@ -17,8 +17,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient()
-
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -44,6 +42,7 @@ export default function LoginPage() {
     }
 
     try {
+      const supabase = createClient()
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -84,6 +83,7 @@ export default function LoginPage() {
     }
 
     try {
+      const supabase = createClient()
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
