@@ -23,6 +23,17 @@ export default function LoginPage() {
     // Debug: verificar se as variáveis de ambiente estão disponíveis
     console.log('Login page mounted')
     console.log('Supabase URL available:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    
+    // Verificar se já está autenticado
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        console.log('User already authenticated, redirecting...')
+        window.location.href = '/products'
+      }
+    }
+    checkAuth()
   }, [])
 
   async function handleSignUp(e: React.FormEvent) {
@@ -78,10 +89,20 @@ export default function LoginPage() {
       }
 
       if (result.data?.user) {
-        console.log('SignUp success, redirecting...')
-        // Redireciona mesmo sem confirmação de e-mail
-        // Use window.location para forçar reload completo e garantir que cookies sejam enviados
-        window.location.href = '/products'
+        console.log('SignUp success, establishing session...')
+        // Aguardar um pouco para garantir que os cookies sejam persistidos
+        await new Promise(resolve => setTimeout(resolve, 100))
+        // Verificar se a sessão está estabelecida antes de redirecionar
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          console.log('Session established, redirecting...')
+          // Redireciona mesmo sem confirmação de e-mail
+          window.location.href = '/products'
+        } else {
+          console.error('Session not established yet')
+          setError('Erro ao estabelecer sessão. Tente novamente.')
+          setLoading(false)
+        }
       } else {
         console.error('SignUp: No user in response')
         setError('Falha ao criar conta. Tente novamente.')
@@ -128,9 +149,19 @@ export default function LoginPage() {
       }
 
       if (result.data?.user) {
-        console.log('SignIn success, redirecting...')
-        // Use window.location para forçar reload completo e garantir que cookies sejam enviados
-        window.location.href = '/products'
+        console.log('SignIn success, establishing session...')
+        // Aguardar um pouco para garantir que os cookies sejam persistidos
+        await new Promise(resolve => setTimeout(resolve, 100))
+        // Verificar se a sessão está estabelecida antes de redirecionar
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          console.log('Session established, redirecting...')
+          window.location.href = '/products'
+        } else {
+          console.error('Session not established yet')
+          setError('Erro ao estabelecer sessão. Tente novamente.')
+          setLoading(false)
+        }
       } else {
         console.error('SignIn: No user in response')
         setError('Falha ao fazer login. Tente novamente.')
