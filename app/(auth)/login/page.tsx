@@ -51,9 +51,9 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      console.log('Attempting sign up...')
+      console.log('Attempting sign up...', { email: email.trim() })
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const result = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
         options: {
@@ -64,18 +64,26 @@ export default function LoginPage() {
         },
       })
 
-      if (signUpError) {
-        console.error('SignUp error:', signUpError)
-        setError(signUpError.message || 'Erro ao criar conta')
+      console.log('SignUp result:', { 
+        hasData: !!result.data, 
+        hasError: !!result.error,
+        hasUser: !!result.data?.user 
+      })
+
+      if (result.error) {
+        console.error('SignUp error:', result.error)
+        setError(result.error.message || 'Erro ao criar conta')
         setLoading(false)
         return
       }
 
-      if (data.user) {
+      if (result.data?.user) {
+        console.log('SignUp success, redirecting...')
         // Redireciona mesmo sem confirmação de e-mail
         router.push('/products')
         router.refresh()
       } else {
+        console.error('SignUp: No user in response')
         setError('Falha ao criar conta. Tente novamente.')
         setLoading(false)
       }
@@ -99,24 +107,32 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      console.log('Attempting sign in...')
+      console.log('Attempting sign in...', { email: email.trim() })
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const result = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       })
 
-      if (signInError) {
-        console.error('SignIn error:', signInError)
-        setError(signInError.message || 'E-mail ou senha incorretos')
+      console.log('SignIn result:', { 
+        hasData: !!result.data, 
+        hasError: !!result.error,
+        hasUser: !!result.data?.user 
+      })
+
+      if (result.error) {
+        console.error('SignIn error:', result.error)
+        setError(result.error.message || 'E-mail ou senha incorretos')
         setLoading(false)
         return
       }
 
-      if (data.user) {
+      if (result.data?.user) {
+        console.log('SignIn success, redirecting...')
         router.push('/products')
         router.refresh()
       } else {
+        console.error('SignIn: No user in response')
         setError('Falha ao fazer login. Tente novamente.')
         setLoading(false)
       }
