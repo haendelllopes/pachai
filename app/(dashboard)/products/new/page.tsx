@@ -17,10 +17,17 @@ export default function NewProductPage() {
     const supabase = createClient()
 
     try {
-      // Create product
+      // Get authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado')
+      }
+
+      // Create product with user_id
       const { data: product, error: productError } = await supabase
         .from('products')
-        .insert({ name: name.trim() })
+        .insert({ name: name.trim(), user_id: user.id })
         .select()
         .single()
 
