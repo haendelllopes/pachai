@@ -40,7 +40,10 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     // Focar o input quando o componente é montado ou conversationId muda
     setTimeout(() => {
       inputRef.current?.focus()
-      adjustTextareaHeight()
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+        inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`
+      }
     }, 100)
   }, [conversationId])
 
@@ -62,12 +65,6 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  function adjustTextareaHeight() {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto'
-      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`
-    }
-  }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -85,12 +82,12 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     setLoading(true)
     
     // Resetar altura e restaurar foco no input após limpar o campo
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       if (inputRef.current) {
         inputRef.current.style.height = 'auto'
+        inputRef.current.focus()
       }
-      inputRef.current?.focus()
-    }, 0)
+    })
 
     // Save user message
     const { data: userMessage, error: userError } = await supabase
@@ -106,9 +103,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     if (userError) {
       console.error('Error saving user message:', userError)
       setLoading(false)
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         inputRef.current?.focus()
-      }, 0)
+      })
       return
     }
 
@@ -123,9 +120,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       setSuggestedTitle(verdictSignal.suggestedTitle)
       setShowVeredictForm(true)
       setLoading(false)
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         inputRef.current?.focus()
-      }, 0)
+      })
       return
     }
 
@@ -162,9 +159,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     setLoading(false)
     
     // Restaurar foco no input após processar a mensagem
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       inputRef.current?.focus()
-    }, 0)
+    })
   }
 
   async function handleVeredictConfirm(title: string, pain: string, value: string, notes?: string) {
@@ -294,8 +291,13 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           background: '#ffffff',
         }}>
           <div style={{
+            border: '1px solid #e5e5e5',
+            borderRadius: '0.75rem',
+            padding: '0.75rem',
             display: 'flex',
-            gap: '0.75rem',
+            alignItems: 'flex-end',
+            gap: '0.5rem',
+            background: '#ffffff',
           }}>
             <textarea
               ref={inputRef}
@@ -303,41 +305,68 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               value={input}
               onChange={(e) => {
                 setInput(e.target.value)
-                adjustTextareaHeight()
+                e.target.style.height = 'auto'
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
               }}
               onKeyDown={handleKeyDown}
               placeholder="Conte-me sobre o que está te incomodando..."
               disabled={loading}
               style={{
                 flex: 1,
-                padding: '0.75rem 1rem',
-                border: '1px solid #e5e5e5',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
+                padding: '0.5rem 0.75rem',
+                border: 'none',
+                borderRadius: '0',
+                fontSize: '0.875rem',
                 resize: 'none',
                 overflow: 'hidden',
-                minHeight: '2.75rem',
+                minHeight: '1.5rem',
                 maxHeight: '200px',
                 lineHeight: '1.5',
                 fontFamily: 'inherit',
+                background: 'transparent',
+                outline: 'none',
               }}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
               style={{
-                padding: '0.75rem 2rem',
-                background: loading || !input.trim() ? '#ccc' : '#1a1a1a',
-                color: '#ffffff',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-                fontWeight: 500,
+                width: '2rem',
+                height: '2rem',
+                padding: 0,
+                borderRadius: '50%',
+                background: loading || !input.trim() ? '#e5e5e5' : '#1a1a1a',
+                color: loading || !input.trim() ? '#999' : '#ffffff',
+                border: 'none',
                 cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                transition: 'opacity 0.2s, background-color 0.2s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && input.trim()) {
+                  e.currentTarget.style.opacity = '0.8'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
               }}
             >
-              Enviar
+              ↑
             </button>
           </div>
+          <p style={{
+            fontSize: '0.75rem',
+            color: '#999',
+            marginTop: '0.5rem',
+            marginLeft: '0.25rem',
+            marginBottom: 0,
+          }}>
+            Enter para enviar · Shift + Enter para nova linha
+          </p>
         </form>
       </div>
 
