@@ -9,10 +9,12 @@ As seguintes credenciais foram configuradas para o projeto "pachai":
 Crie um arquivo `.env.local` na raiz do projeto com o seguinte conteúdo:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ybosgihyhwkogodwobeb.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlib3NnaWh5aHdrb2dvZHdvYmViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4OTEzNTQsImV4cCI6MjA3ODQ2NzM1NH0.gPwNEx_dluHVzwfZTPsXyctIx53D0tI3_4VwdC_9onU
+NEXT_PUBLIC_SUPABASE_URL=https://aznkixldjikctoruonuo.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_chave_anon_do_projeto>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+**IMPORTANTE:** Substitua `<sua_chave_anon_do_projeto>` pela chave anon do projeto correto (encontre em Settings → API → Project API keys).
 
 ## Banco de Dados
 
@@ -28,12 +30,11 @@ Todas as tabelas têm RLS (Row Level Security) habilitado.
 
 ## Próximos Passos
 
-1. **Configurar Google OAuth no Supabase:**
-   - Acesse o dashboard do Supabase: https://ybosgihyhwkogodwobeb.supabase.co
-   - Vá em Authentication > Providers
-   - Habilite o Google Provider
-   - Configure o Client ID e Client Secret do Google
-   - Adicione a URL de callback: `http://localhost:3000/auth/callback` (para desenvolvimento)
+1. **Aplicar Migration no Supabase:**
+   - Acesse o dashboard do Supabase: https://aznkixldjikctoruonuo.supabase.co
+   - Vá em SQL Editor
+   - Cole e execute o conteúdo do arquivo `supabase/migrations/001_initial_schema.sql`
+   - Verifique se as tabelas foram criadas: products, conversations, messages, veredicts
 
 2. **Instalar dependências:**
    ```bash
@@ -45,18 +46,15 @@ Todas as tabelas têm RLS (Row Level Security) habilitado.
    npm run dev
    ```
 
-## Configuração do Google OAuth
+## Autenticação
 
-Para configurar o OAuth no Google Cloud Console:
+O Pachai usa autenticação por e-mail e senha via Supabase Auth:
 
-1. Acesse https://console.cloud.google.com/
-2. Crie um novo projeto ou selecione um existente
-3. Vá em "APIs & Services" > "Credentials"
-4. Crie um "OAuth 2.0 Client ID"
-5. Configure as URLs autorizadas:
-   - **Authorized JavaScript origins:** `http://localhost:3000`
-   - **Authorized redirect URIs:** `https://ybosgihyhwkogodwobeb.supabase.co/auth/v1/callback`
-6. Copie o Client ID e Client Secret para o Supabase
+- **Criar conta:** Nome, sobrenome, e-mail e senha
+- **Entrar:** E-mail e senha
+- Nome e sobrenome são salvos em `user_metadata` do Supabase
+- Não é necessário configurar OAuth ou magic link
+- E-mail de confirmação pode estar habilitado no Supabase, mas não bloqueia o login
 
 ## Estrutura do Banco
 

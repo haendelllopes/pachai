@@ -1,25 +1,108 @@
-import { createClient } from '@/app/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function LoginPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/app/lib/supabase/client'
 
-  if (user) {
-    redirect('/products')
+type Mode = 'signin' | 'signup'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [mode, setMode] = useState<Mode>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const supabase = createClient()
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    // Validação frontend
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem')
+      setLoading(false)
+      return
+    }
+
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
+      setError('Preencha todos os campos')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+        },
+      })
+
+      if (signUpError) {
+        setError(signUpError.message || 'Erro ao criar conta')
+        setLoading(false)
+        return
+      }
+
+      if (data.user) {
+        // Redireciona mesmo sem confirmação de e-mail
+        router.push('/products')
+        router.refresh()
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta')
+      setLoading(false)
+    }
   }
 
-  async function signInWithGoogle() {
-    'use server'
-    const supabase = await createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/products`,
-      },
-    })
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    if (!email.trim() || !password.trim()) {
+      setError('Preencha e-mail e senha')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      })
+
+      if (signInError) {
+        setError(signInError.message || 'E-mail ou senha incorretos')
+        setLoading(false)
+        return
+      }
+
+      if (data.user) {
+        router.push('/products')
+        router.refresh()
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login')
+      setLoading(false)
+    }
   }
 
   return (
@@ -41,39 +124,236 @@ export default async function LoginPage() {
           marginBottom: '1rem',
           textAlign: 'center',
         }}>
-          Entrar no Pachai
+          {mode === 'signin' ? 'Entrar no Pachai' : 'Criar conta'}
         </h1>
-        
-        <p style={{
-          fontSize: '1rem',
-          lineHeight: 1.6,
+
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
           marginBottom: '2rem',
-          textAlign: 'center',
-          color: '#666',
+          justifyContent: 'center',
         }}>
-          Continue com sua conta Google para acessar seu espaço de decisões.
-        </p>
-        
-        <form action={signInWithGoogle}>
           <button
-            type="submit"
-            className="landing-button"
+            type="button"
+            onClick={() => {
+              setMode('signin')
+              setError(null)
+            }}
             style={{
-              width: '100%',
-              padding: '0.75rem 2rem',
-              background: '#1a1a1a',
-              color: '#ffffff',
-              borderRadius: '0.5rem',
-              fontSize: '1rem',
+              padding: '0.5rem 1rem',
+              background: mode === 'signin' ? '#1a1a1a' : 'transparent',
+              color: mode === 'signin' ? '#ffffff' : '#666',
+              border: '1px solid #e5e5e5',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
               fontWeight: 500,
-              transition: 'background 0.2s',
+              cursor: 'pointer',
             }}
           >
-            Continuar com Google
+            Entrar
           </button>
-        </form>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('signup')
+              setError(null)
+            }}
+            style={{
+              padding: '0.5rem 1rem',
+              background: mode === 'signup' ? '#1a1a1a' : 'transparent',
+              color: mode === 'signup' ? '#ffffff' : '#666',
+              border: '1px solid #e5e5e5',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Criar conta
+          </button>
+        </div>
+
+        {error && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            background: '#fee',
+            color: '#c33',
+            borderRadius: '0.5rem',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {mode === 'signup' ? (
+          <form onSubmit={handleSignUp}>
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Nome"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Sobrenome"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <input
+                type="password"
+                placeholder="Confirmar senha"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="landing-button"
+              style={{
+                width: '100%',
+                padding: '0.75rem 2rem',
+                background: loading ? '#ccc' : '#1a1a1a',
+                color: '#ffffff',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: 500,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Criando conta...' : 'Criar conta'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSignIn}>
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="landing-button"
+              style={{
+                width: '100%',
+                padding: '0.75rem 2rem',
+                background: loading ? '#ccc' : '#1a1a1a',
+                color: '#ffffff',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: 500,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+        )}
       </div>
     </main>
   )
 }
-

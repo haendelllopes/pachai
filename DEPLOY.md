@@ -40,16 +40,7 @@ NEXT_PUBLIC_SITE_URL=https://seu-dominio.vercel.app
 
 **IMPORTANTE:** Substitua `https://seu-dominio.vercel.app` pela URL real que o Vercel gerar após o deploy.
 
-### 4. Atualizar Callback do Google OAuth
-
-Após obter a URL do Vercel:
-
-1. Acesse o Supabase: https://ybosgihyhwkogodwobeb.supabase.co
-2. Vá em **Authentication** > **URL Configuration**
-3. Adicione a URL de produção do Vercel em **Site URL**
-4. Adicione em **Redirect URLs**: `https://seu-dominio.vercel.app/auth/callback`
-
-### 5. Redeploy
+### 4. Redeploy
 
 Após configurar as variáveis, faça um novo deploy:
 ```bash
@@ -76,7 +67,7 @@ Ou redeploy pelo dashboard do Vercel (clique em "Redeploy" na última deployment
 
 - [ ] Site está acessível
 - [ ] Variáveis de ambiente configuradas
-- [ ] Google OAuth callback atualizado no Supabase
+- [ ] Variáveis de ambiente configuradas no Vercel
 - [ ] Login funciona
 - [ ] Chat funciona
 

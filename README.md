@@ -20,22 +20,22 @@ npm install
 
 Crie um arquivo `.env.local` na raiz do projeto com:
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://ybosgihyhwkogodwobeb.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlib3NnaWh5aHdrb2dvZHdvYmViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4OTEzNTQsImV4cCI6MjA3ODQ2NzM1NH0.gPwNEx_dluHVzwfZTPsXyctIx53D0tI3_4VwdC_9onU
+NEXT_PUBLIC_SUPABASE_URL=https://aznkixldjikctoruonuo.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_chave_anon_do_projeto>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+**Nota:** Substitua `<sua_chave_anon_do_projeto>` pela chave anon do projeto (encontre em Settings → API → Project API keys).
 
 3. ✅ Banco de dados configurado!
    - Migration `001_initial_schema` já foi aplicada
    - Tabelas criadas: `products`, `conversations`, `messages`, `veredicts`
    - RLS habilitado em todas as tabelas
 
-4. Configure Google OAuth no Supabase:
-   - Acesse o dashboard: https://ybosgihyhwkogodwobeb.supabase.co
-   - Vá em Authentication > Providers
-   - Habilite o Google Provider
-   - Adicione a URL de callback: `http://localhost:3000/auth/callback`
-   - Veja instruções detalhadas em `SETUP.md`
+4. ✅ Autenticação configurada!
+   - Login com e-mail e senha já está funcionando
+   - Criação de conta disponível na tela de login
+   - Não é necessário configurar OAuth ou magic link
 
 4. Execute o projeto:
 ```bash
@@ -50,7 +50,7 @@ npm run dev
 
 ## Funcionalidades V1
 
-- ✅ Autenticação via Google OAuth
+- ✅ Autenticação via e-mail e senha (signUp + signIn)
 - ✅ Criação de produtos
 - ✅ Chat funcional com Pachai (mock)
 - ✅ Registro de vereditos
