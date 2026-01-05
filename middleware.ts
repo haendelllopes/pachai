@@ -1,9 +1,30 @@
+import { createMiddlewareClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // TEMPORARIAMENTE DESABILITADO: Permitir todas as requisições sem verificação
-  // Isso isola o problema de autenticação para teste
-  return NextResponse.next()
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req: request, res })
+
+  const pathname = request.nextUrl.pathname
+
+  // Não proteger /login nem /
+  if (pathname === '/login' || pathname === '/') {
+    return res
+  }
+
+  // Proteger apenas rotas /products
+  if (pathname.startsWith('/products')) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Redirecionar para /login se não houver sessão
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
+  return res
 }
 
 export const config = {
