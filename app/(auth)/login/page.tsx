@@ -23,17 +23,6 @@ export default function LoginPage() {
     // Debug: verificar se as variáveis de ambiente estão disponíveis
     console.log('Login page mounted')
     console.log('Supabase URL available:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-    
-    // Verificar se já está autenticado
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        console.log('User already authenticated, redirecting...')
-        window.location.href = '/products'
-      }
-    }
-    checkAuth()
   }, [])
 
   async function handleSignUp(e: React.FormEvent) {
