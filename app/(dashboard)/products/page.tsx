@@ -1,30 +1,6 @@
-import { createClient } from '@/app/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
-export default async function ProductsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Buscar produtos
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('id, name')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching products:', error)
-  }
-
-  // Se houver produtos, redirecionar para o primeiro
-  if (products && products.length > 0) {
-    redirect(`/products/${products[0].id}`)
-  }
-
+export default function ProductsPage() {
   // Estado vazio: nenhum produto criado
   return (
     <div style={{

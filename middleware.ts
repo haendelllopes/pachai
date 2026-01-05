@@ -30,25 +30,6 @@ export async function middleware(request: NextRequest) {
   // Sempre atualizar sessão (mantém cookies frescos)
   await supabase.auth.getSession()
 
-  const pathname = request.nextUrl.pathname
-
-  // Permitir acesso a /login sem verificação
-  if (pathname === '/login') {
-    return supabaseResponse
-  }
-
-  // Proteger rotas /products/*
-  if (pathname.startsWith('/products')) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    // Redirecionar para /login se não houver sessão
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-  }
-
   return supabaseResponse
 }
 

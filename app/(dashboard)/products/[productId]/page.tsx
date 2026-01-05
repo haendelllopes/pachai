@@ -1,5 +1,3 @@
-import { createClient } from '@/app/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import ChatInterface from '@/app/components/chat/ChatInterface'
 
 interface ProductPageProps {
@@ -10,57 +8,6 @@ interface ProductPageProps {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { productId } = await params
-  const supabase = await createClient()
-  
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Verify product belongs to user
-  const { data: product } = await supabase
-    .from('products')
-    .select('id, name')
-    .eq('id', productId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!product) {
-    redirect('/products')
-  }
-
-  // Get or create conversation (V1: 1 product = 1 conversation)
-  let { data: conversation } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('product_id', productId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .single()
-
-  // If no conversation exists, create one
-  if (!conversation) {
-    const { data: newConversation, error } = await supabase
-      .from('conversations')
-      .insert({ product_id: productId })
-      .select()
-      .single()
-
-    if (error || !newConversation) {
-      console.error('Error creating conversation:', error)
-      redirect('/products')
-    }
-
-    conversation = newConversation
-  }
-
-  // Final check to ensure conversation exists
-  if (!conversation) {
-    redirect('/products')
-  }
 
   return (
     <div style={{
@@ -78,13 +25,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
           fontSize: '1.5rem',
           fontWeight: 600,
         }}>
-          {product.name}
+          Produto {productId}
         </h1>
       </div>
       
       <ChatInterface
         productId={productId}
-        conversationId={conversation.id}
+        conversationId=""
       />
     </div>
   )
