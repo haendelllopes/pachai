@@ -76,17 +76,15 @@ export default function LoginPage() {
 
       // Aguardar data.session antes de atualizar
       if (result.data?.session) {
-        console.log('SignUp success, session established, refreshing router...')
-        router.refresh()
-        // Middleware faz redirect para /products
+        console.log('SignUp success, session established, navigating to /products...')
+        router.push('/products')
       } else if (result.data?.user) {
         // Se não houver sessão imediatamente, aguardar e verificar novamente
         await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established after wait, refreshing router...')
-          router.refresh()
-          // Middleware faz redirect para /products
+          console.log('Session established after wait, navigating to /products...')
+          router.push('/products')
         } else {
           console.error('Session not established yet')
           setError('Erro ao estabelecer sessão. Tente novamente.')
