@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for auth routes and static files
+  const pathname = request.nextUrl.pathname
+  if (pathname === '/login' || pathname === '/auth/callback') {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -33,7 +39,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/products') && !user) {
+  if (pathname.startsWith('/products') && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
