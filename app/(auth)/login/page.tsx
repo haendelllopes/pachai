@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
 
@@ -16,6 +16,14 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    // Debug: verificar se as variáveis de ambiente estão disponíveis
+    console.log('Login page mounted')
+    console.log('Supabase URL available:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+  }, [])
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
@@ -43,6 +51,18 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
+      
+      // Verificar se as variáveis de ambiente estão definidas
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        setError('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.')
+        setLoading(false)
+        console.error('Supabase env vars missing:', {
+          url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        })
+        return
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -55,6 +75,7 @@ export default function LoginPage() {
       })
 
       if (signUpError) {
+        console.error('SignUp error:', signUpError)
         setError(signUpError.message || 'Erro ao criar conta')
         setLoading(false)
         return
@@ -64,8 +85,12 @@ export default function LoginPage() {
         // Redireciona mesmo sem confirmação de e-mail
         router.push('/products')
         router.refresh()
+      } else {
+        setError('Falha ao criar conta. Tente novamente.')
+        setLoading(false)
       }
     } catch (err: any) {
+      console.error('SignUp exception:', err)
       setError(err.message || 'Erro ao criar conta')
       setLoading(false)
     }
@@ -84,12 +109,25 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
+      
+      // Verificar se as variáveis de ambiente estão definidas
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        setError('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.')
+        setLoading(false)
+        console.error('Supabase env vars missing:', {
+          url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        })
+        return
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       })
 
       if (signInError) {
+        console.error('SignIn error:', signInError)
         setError(signInError.message || 'E-mail ou senha incorretos')
         setLoading(false)
         return
@@ -98,11 +136,19 @@ export default function LoginPage() {
       if (data.user) {
         router.push('/products')
         router.refresh()
+      } else {
+        setError('Falha ao fazer login. Tente novamente.')
+        setLoading(false)
       }
     } catch (err: any) {
+      console.error('SignIn exception:', err)
       setError(err.message || 'Erro ao fazer login')
       setLoading(false)
     }
+  }
+
+  if (!mounted) {
+    return null // Evitar hydration mismatch
   }
 
   return (
