@@ -27,6 +27,8 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
+  
+  const MAX_HEIGHT = 160
 
   useEffect(() => {
     fetchMessages()
@@ -41,8 +43,16 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     setTimeout(() => {
       inputRef.current?.focus()
       if (inputRef.current) {
-        inputRef.current.style.height = 'auto'
-        inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`
+        const el = inputRef.current
+        el.style.height = 'auto'
+        
+        if (el.scrollHeight <= MAX_HEIGHT) {
+          el.style.height = `${el.scrollHeight}px`
+          el.style.overflowY = 'hidden'
+        } else {
+          el.style.height = `${MAX_HEIGHT}px`
+          el.style.overflowY = 'auto'
+        }
       }
     }, 100)
   }, [conversationId])
@@ -305,8 +315,16 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               value={input}
               onChange={(e) => {
                 setInput(e.target.value)
-                e.target.style.height = 'auto'
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
+                const el = e.target
+                el.style.height = 'auto'
+                
+                if (el.scrollHeight <= MAX_HEIGHT) {
+                  el.style.height = `${el.scrollHeight}px`
+                  el.style.overflowY = 'hidden'
+                } else {
+                  el.style.height = `${MAX_HEIGHT}px`
+                  el.style.overflowY = 'auto'
+                }
               }}
               onKeyDown={handleKeyDown}
               placeholder="Conte-me sobre o que está te incomodando..."
@@ -320,7 +338,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
                 resize: 'none',
                 overflow: 'hidden',
                 minHeight: '1.5rem',
-                maxHeight: '200px',
+                maxHeight: `${MAX_HEIGHT}px`,
                 lineHeight: '1.5',
                 fontFamily: 'inherit',
                 background: 'transparent',
