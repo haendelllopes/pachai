@@ -186,10 +186,34 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#888',
-              fontSize: '1rem',
+              padding: '2rem',
             }}>
-              <p>O que está doendo agora?</p>
+              <div style={{
+                maxWidth: '600px',
+                textAlign: 'center',
+              }}>
+                <div style={{
+                  marginBottom: '1.5rem',
+                }}>
+                  <p style={{
+                    fontSize: '1.125rem',
+                    lineHeight: 1.6,
+                    color: '#1a1a1a',
+                    margin: 0,
+                    marginBottom: '1rem',
+                  }}>
+                    Olá! Este é um espaço para você explorar o que está doendo, pensar sobre decisões importantes e registrar vereditos conscientes.
+                  </p>
+                  <p style={{
+                    fontSize: '1rem',
+                    lineHeight: 1.6,
+                    color: '#666',
+                    margin: 0,
+                  }}>
+                    O que você gostaria de conversar hoje?
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
             <div>
@@ -235,7 +259,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="O que está doendo agora?"
+              placeholder="Conte-me sobre o que está te incomodando..."
               disabled={loading}
               style={{
                 flex: 1,
