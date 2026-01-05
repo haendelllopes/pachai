@@ -133,12 +133,13 @@ export default function LoginPage() {
         return
       }
 
+      // Aguardar data.session antes de redirecionar
       if (result.data?.session) {
         console.log('Session established, redirecting...')
         window.location.href = '/products'
-      } else if (result.data?.user) {
-        // Se não houver sessão mas houver user, aguardar um pouco e verificar novamente
-        await new Promise(resolve => setTimeout(resolve, 200))
+      } else {
+        // Se não houver sessão imediatamente, aguardar e verificar novamente
+        await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
           console.log('Session established after wait, redirecting...')
@@ -148,10 +149,6 @@ export default function LoginPage() {
           setError('Erro ao estabelecer sessão. Tente novamente.')
           setLoading(false)
         }
-      } else {
-        console.error('SignIn: No user in response')
-        setError('Falha ao fazer login. Tente novamente.')
-        setLoading(false)
       }
     } catch (err: any) {
       console.error('SignIn exception:', err)
