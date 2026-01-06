@@ -106,25 +106,27 @@ export default function ConversationPage() {
       overflow: 'hidden',
     }}>
       <div style={{
-        borderBottom: '1px solid #e5e5e5',
-        padding: '1.5rem 2rem',
-        background: '#ffffff',
+        borderBottom: '1px solid var(--border-soft)',
+        padding: '1rem 1.5rem',
+        background: 'var(--bg-main)',
       }}>
         <h1 style={{
-          fontSize: '1.5rem',
-          fontWeight: 600,
+          fontSize: '1.25rem',
+          fontWeight: 400,
+          fontFamily: 'Georgia, "Times New Roman", serif',
           marginBottom: '0.25rem',
-          color: '#1a1a1a',
+          color: 'var(--text-main)',
+          letterSpacing: '-0.01em',
         }}>
           {productName || `Produto ${productId}`}
         </h1>
         <p style={{
           fontSize: '0.875rem',
-          color: '#666',
-          fontWeight: 400,
+          color: 'var(--text-soft)',
+          fontWeight: 300,
           margin: 0,
         }}>
-          Um espaço para explorar decisões e registrar vereditos conscientes
+          Um espaço de escuta contínua
         </p>
       </div>
       

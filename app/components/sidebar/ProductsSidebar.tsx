@@ -144,16 +144,20 @@ export default function ProductsSidebar() {
   }, [pathname])
 
   const sidebarWidth = collapsed ? '64px' : '280px'
+  
+  // Detectar se está em uma conversa ativa
+  const isInConversation = pathname?.match(/\/products\/([^/]+)\/conversations\/([^/]+)/) !== null
 
   return (
     <aside style={{
       width: sidebarWidth,
-      borderRight: '1px solid #e5e5e5',
+      borderRight: '1px solid var(--border-soft)',
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      background: '#fafafa',
-      transition: 'width 0.2s',
+      background: 'var(--bg-soft)',
+      transition: 'width 0.2s, opacity 0.3s ease',
+      opacity: isInConversation ? 0.6 : 1,
     }}>
       {/* Header */}
       <div style={{

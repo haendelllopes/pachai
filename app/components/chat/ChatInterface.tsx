@@ -230,20 +230,6 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           overflow: 'hidden',
         }}
       >
-        {/* Header minimalista */}
-        <header
-          className="chat-header"
-          style={{
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid var(--border-soft)',
-            fontSize: '0.9rem',
-            opacity: 0.7,
-            color: 'var(--text-main)',
-          }}
-        >
-          <span className="chat-title">Pachai</span>
-        </header>
-
         {/* Área de mensagens */}
         <div
           className="chat-messages"
@@ -313,21 +299,27 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
             </div>
           ) : (
             <div>
-              {messages.map((message) => (
+              {messages.map((message, index) => (
                 <MessageBubble
                   key={message.id}
                   role={message.role}
                   content={message.content}
+                  isFirst={index === 0}
                 />
               ))}
               {loading && (
                 <div
                   style={{
                     maxWidth: '640px',
-                    marginBottom: '1.5rem',
-                    color: 'var(--text-soft)',
+                    marginTop: '24px',
+                    marginBottom: '28px',
+                    padding: 0,
+                    background: 'transparent',
+                    color: 'var(--text-main)',
+                    opacity: 0.6,
                     fontSize: '1rem',
-                    fontStyle: 'italic',
+                    fontWeight: 400,
+                    lineHeight: 1.6,
                   }}
                 >
                   Pensando...
@@ -368,14 +360,15 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Conte-me o que está em aberto…"
+            placeholder="Escreva no seu tempo. Não precisa decidir nada agora."
             disabled={loading}
             style={{
               flex: 1,
               resize: 'none',
+              minHeight: '60px',
               maxHeight: '160px',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius-md)',
+              padding: '1rem 1.25rem',
+              borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border-soft)',
               background: 'white',
               fontSize: '1rem',
@@ -389,17 +382,18 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
             type="submit"
             disabled={loading || !input.trim()}
             style={{
-              width: '40px',
-              height: '40px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
-              background: loading || !input.trim() ? 'var(--border-soft)' : 'var(--accent)',
-              color: 'white',
+              background: loading || !input.trim() ? 'transparent' : 'var(--accent)',
+              color: loading || !input.trim() ? 'transparent' : 'white',
               border: 'none',
               cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '1rem',
+              opacity: loading || !input.trim() ? 0 : 1,
               transition: 'opacity 0.2s ease',
               flexShrink: 0,
             }}
@@ -409,7 +403,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1'
+              if (!loading && input.trim()) {
+                e.currentTarget.style.opacity = '1'
+              }
             }}
           >
             ↑
