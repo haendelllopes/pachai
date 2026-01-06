@@ -1,10 +1,15 @@
 /**
- * Script para visualizar e aplicar migrations do Supabase
+ * Script para visualizar migrations do Supabase
  * 
  * Uso: npm run migrations
  * 
- * Este script mostra as migrations pendentes e instruções para aplicá-las.
- * As migrations precisam ser aplicadas manualmente via SQL Editor do Supabase.
+ * Este script mostra as migrations pendentes.
+ * 
+ * NOTA: Para aplicar automaticamente via MCP, peça ao Cursor AI:
+ * "Aplicar migrations pendentes usando MCP do Supabase"
+ * 
+ * O Cursor AI verificará quais migrations já foram aplicadas
+ * e aplicará apenas as pendentes automaticamente.
  */
 
 const fs = require('fs');

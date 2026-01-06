@@ -2,7 +2,20 @@
 
 ## Como Aplicar Migrations
 
-As migrations do Supabase precisam ser aplicadas manualmente via SQL Editor do dashboard.
+### Método 1: Via MCP do Supabase (Recomendado - Automático)
+
+Se você está usando o Cursor AI, pode aplicar migrations automaticamente:
+
+1. Peça ao Cursor AI: **"Aplicar migrations pendentes usando MCP do Supabase"**
+2. O Cursor verificará quais migrations já foram aplicadas
+3. Aplicará apenas as pendentes automaticamente
+
+✅ **Status atual:** Todas as migrations foram aplicadas via MCP:
+- ✅ `add_conversation_status` (20260106142047)
+- ✅ `add_paused_at` (20260106142050)
+- ✅ `add_reopened_at` (20260106142053)
+
+### Método 2: Manual via SQL Editor
 
 ### Método Rápido (Recomendado)
 
@@ -33,18 +46,18 @@ Isso mostrará todas as migrations na ordem correta. Copie e cole cada uma no SQ
    - Clique em "Run" ou pressione Ctrl+Enter
    - Verifique se não há erros
 
-## Migrations Pendentes
+## Migrations Aplicadas
 
-### 002_add_conversation_status.sql
+### ✅ 002_add_conversation_status.sql (Aplicada)
 - Adiciona coluna `status` (ACTIVE, PAUSED, CLOSED)
 - Adiciona coluna `last_activity_at`
 - Cria índices para performance
 
-### 003_add_paused_at.sql
+### ✅ 003_add_paused_at.sql (Aplicada)
 - Adiciona coluna `paused_at` (timestamp de quando foi pausada)
 - Cria índice para performance
 
-### 004_add_reopened_at.sql
+### ✅ 004_add_reopened_at.sql (Aplicada)
 - Adiciona coluna `reopened_at` (timestamp de quando foi reaberta)
 - Cria índice para performance
 
