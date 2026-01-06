@@ -143,10 +143,10 @@ export default function ProductsSidebar() {
     }
   }, [pathname])
 
-  const sidebarWidth = collapsed ? '64px' : '280px'
+  const sidebarWidth = collapsed ? '64px' : '240px'
   
   // Detectar se está em uma conversa ativa
-  const isInConversation = pathname?.match(/\/products\/([^/]+)\/conversations\/([^/]+)/) !== null
+  const isInConversation = pathname?.includes('/conversations/')
 
   return (
     <aside style={{
@@ -157,7 +157,7 @@ export default function ProductsSidebar() {
       flexDirection: 'column',
       background: 'var(--bg-soft)',
       transition: 'width 0.2s, opacity 0.3s ease',
-      opacity: isInConversation ? 0.6 : 1,
+      opacity: isInConversation ? 0.55 : 1,
     }}>
       {/* Header */}
       <div style={{
@@ -171,7 +171,8 @@ export default function ProductsSidebar() {
         {!collapsed && (
           <h2 style={{
             fontSize: '1.25rem',
-            fontWeight: 600,
+            fontWeight: 500,
+            opacity: 1,
             margin: 0,
           }}>
             Projetos
@@ -278,7 +279,8 @@ export default function ProductsSidebar() {
                         fontSize: '0.875rem',
                         color: (isProductPage || isConversationPage) ? '#1a1a1a' : '#666',
                         background: (isProductPage || isConversationPage) ? '#ffffff' : 'transparent',
-                        fontWeight: (isProductPage || isConversationPage) ? 500 : 400,
+                        fontWeight: 400,
+                        opacity: 0.85,
                         transition: 'all 0.2s',
                         textAlign: 'left',
                         border: 'none',
@@ -347,15 +349,17 @@ export default function ProductsSidebar() {
                                 borderRadius: '0.375rem',
                                 marginBottom: '0.25rem',
                                 fontSize: '0.8125rem',
-                                color: isActive ? '#1a1a1a' : '#666',
-                                background: isActive ? '#ffffff' : 'transparent',
-                                fontWeight: isActive ? 500 : 400,
+                                color: '#666',
+                                background: isActive ? 'rgba(0, 0, 0, 0.03)' : 'transparent',
+                                borderLeft: isActive ? '2px solid var(--accent)' : 'none',
+                                fontWeight: 300,
+                                opacity: 0.65,
                                 transition: 'all 0.2s',
                                 textDecoration: 'none',
                               }}
                               onMouseEnter={(e) => {
                                 if (!isActive) {
-                                  e.currentTarget.style.background = '#f0f0f0'
+                                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.02)'
                                 }
                               }}
                               onMouseLeave={(e) => {
@@ -431,38 +435,12 @@ export default function ProductsSidebar() {
               overflow: 'hidden',
             }}>
               <button
-                onClick={() => {
-                  setShowProfileMenu(false)
-                  // Placeholder para configurações
-                  alert('Configurações em breve')
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'transparent',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  color: '#666',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f0f0f0'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                Configurações
-              </button>
-              <button
                 onClick={handleLogout}
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
                   background: 'transparent',
                   border: 'none',
-                  borderTop: '1px solid #e5e5e5',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontSize: '0.875rem',
