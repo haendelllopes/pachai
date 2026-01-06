@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import MessageBubble from './MessageBubble'
 import VeredictForm from './VeredictForm'
 import { createClient } from '@/app/lib/supabase/client'
@@ -221,47 +222,90 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
   return (
     <>
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
-        <div style={{
+      <div
+        style={{
           flex: 1,
-          overflowY: 'auto',
-          padding: '2rem',
-        }}>
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header minimalista */}
+        <header
+          className="chat-header"
+          style={{
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid var(--border-soft)',
+            fontSize: '0.9rem',
+            opacity: 0.7,
+            color: 'var(--text-main)',
+          }}
+        >
+          <span className="chat-title">Pachai</span>
+        </header>
+
+        {/* Área de mensagens */}
+        <div
+          className="chat-messages"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '2rem 1.5rem',
+            background: 'var(--bg-main)',
+          }}
+        >
           {messages.length === 0 ? (
-            <div style={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2rem',
-            }}>
-              <div style={{
-                maxWidth: '600px',
-                textAlign: 'center',
-              }}>
-                <div style={{
-                  marginBottom: '1.5rem',
-                }}>
-                  <p style={{
-                    fontSize: '1.125rem',
-                    lineHeight: 1.6,
-                    color: '#1a1a1a',
-                    margin: 0,
-                    marginBottom: '1rem',
-                  }}>
+            <div
+              style={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2rem',
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: '600px',
+                  textAlign: 'center',
+                }}
+              >
+                <Image
+                  src="/image/hero-icon.jpeg"
+                  alt="Pachai"
+                  width={64}
+                  height={64}
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    margin: '0 auto 1.5rem',
+                    opacity: 0.85,
+                  }}
+                />
+                <div
+                  style={{
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: '1.125rem',
+                      lineHeight: 1.6,
+                      color: 'var(--text-main)',
+                      margin: 0,
+                      marginBottom: '1rem',
+                    }}
+                  >
                     Olá! Este é um espaço para você explorar o que está doendo, pensar sobre decisões importantes e registrar vereditos conscientes.
                   </p>
-                  <p style={{
-                    fontSize: '1rem',
-                    lineHeight: 1.6,
-                    color: '#666',
-                    margin: 0,
-                  }}>
+                  <p
+                    style={{
+                      fontSize: '1rem',
+                      lineHeight: 1.6,
+                      color: 'var(--text-soft)',
+                      margin: 0,
+                    }}
+                  >
                     O que você gostaria de conversar hoje?
                   </p>
                 </div>
@@ -277,20 +321,16 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
                 />
               ))}
               {loading && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  marginBottom: '1rem',
-                }}>
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.75rem',
-                    background: '#f0f0f0',
-                    color: '#888',
-                    fontSize: '0.9375rem',
-                  }}>
-                    Pensando...
-                  </div>
+                <div
+                  style={{
+                    maxWidth: '640px',
+                    marginBottom: '1.5rem',
+                    color: 'var(--text-soft)',
+                    fontSize: '1rem',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Pensando...
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -298,96 +338,82 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           )}
         </div>
 
-        <form onSubmit={handleSend} style={{
-          borderTop: '1px solid #e5e5e5',
-          padding: '1rem 2rem',
-          background: '#ffffff',
-        }}>
-          <div style={{
-            border: '1px solid #e5e5e5',
-            borderRadius: '0.75rem',
-            padding: '0.75rem',
+        {/* Caixa de escrita */}
+        <form
+          className="chat-input"
+          onSubmit={handleSend}
+          style={{
             display: 'flex',
-            alignItems: 'flex-end',
             gap: '0.5rem',
-            background: '#ffffff',
-          }}>
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value)
-                const el = e.target
-                el.style.height = 'auto'
-                
-                if (el.scrollHeight <= MAX_HEIGHT) {
-                  el.style.height = `${el.scrollHeight}px`
-                  el.style.overflowY = 'hidden'
-                } else {
-                  el.style.height = `${MAX_HEIGHT}px`
-                  el.style.overflowY = 'auto'
-                }
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Conte-me sobre o que está te incomodando..."
-              disabled={loading}
-              style={{
-                flex: 1,
-                padding: '0.5rem 0.75rem',
-                border: 'none',
-                borderRadius: '0',
-                fontSize: '0.875rem',
-                resize: 'none',
-                overflow: 'hidden',
-                minHeight: '1.5rem',
-                maxHeight: `${MAX_HEIGHT}px`,
-                lineHeight: '1.5',
-                fontFamily: 'inherit',
-                background: 'transparent',
-                outline: 'none',
-              }}
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              style={{
-                width: '2rem',
-                height: '2rem',
-                padding: 0,
-                borderRadius: '50%',
-                background: loading || !input.trim() ? '#e5e5e5' : '#1a1a1a',
-                color: loading || !input.trim() ? '#999' : '#ffffff',
-                border: 'none',
-                cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                transition: 'opacity 0.2s, background-color 0.2s',
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                if (!loading && input.trim()) {
-                  e.currentTarget.style.opacity = '0.8'
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1'
-              }}
-            >
-              ↑
-            </button>
-          </div>
-          <p style={{
-            fontSize: '0.75rem',
-            color: '#999',
-            marginTop: '0.5rem',
-            marginLeft: '0.25rem',
-            marginBottom: 0,
-          }}>
-            Enter para enviar · Shift + Enter para nova linha
-          </p>
+            padding: '1rem',
+            borderTop: '1px solid var(--border-soft)',
+            background: 'var(--bg-soft)',
+          }}
+        >
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              const el = e.target
+              el.style.height = 'auto'
+              
+              if (el.scrollHeight <= MAX_HEIGHT) {
+                el.style.height = `${el.scrollHeight}px`
+                el.style.overflowY = 'hidden'
+              } else {
+                el.style.height = `${MAX_HEIGHT}px`
+                el.style.overflowY = 'auto'
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Conte-me o que está em aberto…"
+            disabled={loading}
+            style={{
+              flex: 1,
+              resize: 'none',
+              maxHeight: '160px',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-soft)',
+              background: 'white',
+              fontSize: '1rem',
+              lineHeight: '1.5',
+              fontFamily: 'inherit',
+              color: 'var(--text-main)',
+              outline: 'none',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: loading || !input.trim() ? 'var(--border-soft)' : 'var(--accent)',
+              color: 'white',
+              border: 'none',
+              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1rem',
+              transition: 'opacity 0.2s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && input.trim()) {
+                e.currentTarget.style.opacity = '0.85'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1'
+            }}
+          >
+            ↑
+          </button>
         </form>
       </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
+import Image from 'next/image'
 
 type Mode = 'signin' | 'signup'
 
@@ -164,33 +165,69 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem',
-    }}>
-      <div style={{
-        maxWidth: '400px',
-        width: '100%',
-      }}>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 600,
-          marginBottom: '1rem',
+    <main
+      className="auth-page"
+      style={{
+        minHeight: '100vh',
+        display: 'grid',
+        placeItems: 'center',
+        backgroundImage: 'url(/image/background-icon.jpeg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: 'var(--bg-main)',
+        backgroundBlendMode: 'multiply',
+        padding: '2rem',
+      }}
+    >
+      <section
+        className="auth-card"
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          padding: '2.5rem',
+          background: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(6px)',
+          borderRadius: 'var(--radius-lg)',
           textAlign: 'center',
-        }}>
+        }}
+      >
+        <Image
+          src="/image/hero-icon.jpeg"
+          alt="Pachai"
+          width={64}
+          height={64}
+          className="auth-icon"
+          style={{
+            width: '64px',
+            height: '64px',
+            marginBottom: '1.5rem',
+            opacity: 0.85,
+            margin: '0 auto 1.5rem',
+          }}
+        />
+
+        <h1
+          style={{
+            fontSize: '1.75rem',
+            fontWeight: 400,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: '1.5rem',
+            color: 'var(--text-main)',
+            letterSpacing: '-0.01em',
+          }}
+        >
           {mode === 'signin' ? 'Entrar no Pachai' : 'Criar conta'}
         </h1>
 
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '2rem',
-          justifyContent: 'center',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            marginBottom: '2rem',
+            justifyContent: 'center',
+          }}
+        >
           <button
             type="button"
             onClick={() => {
@@ -199,13 +236,20 @@ export default function LoginPage() {
             }}
             style={{
               padding: '0.5rem 1rem',
-              background: mode === 'signin' ? '#1a1a1a' : 'transparent',
-              color: mode === 'signin' ? '#ffffff' : '#666',
-              border: '1px solid #e5e5e5',
-              borderRadius: '0.375rem',
+              background: mode === 'signin' ? 'var(--text-main)' : 'transparent',
+              color: mode === 'signin' ? 'var(--bg-main)' : 'var(--text-soft)',
+              border: `1px solid var(--border-soft)`,
+              borderRadius: 'var(--radius-md)',
               fontSize: '0.875rem',
-              fontWeight: 500,
+              fontWeight: 400,
               cursor: 'pointer',
+              transition: 'opacity 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.8'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1'
             }}
           >
             Entrar
@@ -218,13 +262,20 @@ export default function LoginPage() {
             }}
             style={{
               padding: '0.5rem 1rem',
-              background: mode === 'signup' ? '#1a1a1a' : 'transparent',
-              color: mode === 'signup' ? '#ffffff' : '#666',
-              border: '1px solid #e5e5e5',
-              borderRadius: '0.375rem',
+              background: mode === 'signup' ? 'var(--text-main)' : 'transparent',
+              color: mode === 'signup' ? 'var(--bg-main)' : 'var(--text-soft)',
+              border: `1px solid var(--border-soft)`,
+              borderRadius: 'var(--radius-md)',
               fontSize: '0.875rem',
-              fontWeight: 500,
+              fontWeight: 400,
               cursor: 'pointer',
+              transition: 'opacity 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.8'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1'
             }}
           >
             Criar conta
@@ -232,14 +283,16 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div style={{
-            padding: '0.75rem 1rem',
-            background: '#fee',
-            color: '#c33',
-            borderRadius: '0.5rem',
-            marginBottom: '1rem',
-            fontSize: '0.875rem',
-          }}>
+          <div
+            style={{
+              padding: '0.75rem 1rem',
+              background: 'rgba(204, 51, 51, 0.1)',
+              color: 'oklch(0.50 0.15 25)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+            }}
+          >
             {error}
           </div>
         )}
@@ -257,9 +310,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -275,9 +330,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -293,9 +350,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -311,9 +370,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -329,9 +390,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -339,16 +402,22 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="landing-button"
               style={{
                 width: '100%',
                 padding: '0.75rem 2rem',
-                background: loading ? '#ccc' : '#1a1a1a',
-                color: '#ffffff',
-                borderRadius: '0.5rem',
+                background: loading ? 'var(--border-soft)' : 'var(--text-main)',
+                color: 'var(--bg-main)',
+                borderRadius: 'var(--radius-md)',
                 fontSize: '1rem',
-                fontWeight: 500,
+                fontWeight: 400,
                 cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.opacity = '0.85'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
               }}
             >
               {loading ? 'Criando conta...' : 'Criar conta'}
@@ -367,9 +436,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -385,9 +456,11 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '1rem',
+                  color: 'var(--text-main)',
+                  backgroundColor: 'white',
                 }}
               />
             </div>
@@ -395,23 +468,29 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="landing-button"
               style={{
                 width: '100%',
                 padding: '0.75rem 2rem',
-                background: loading ? '#ccc' : '#1a1a1a',
-                color: '#ffffff',
-                borderRadius: '0.5rem',
+                background: loading ? 'var(--border-soft)' : 'var(--text-main)',
+                color: 'var(--bg-main)',
+                borderRadius: 'var(--radius-md)',
                 fontSize: '1rem',
-                fontWeight: 500,
+                fontWeight: 400,
                 cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.opacity = '0.85'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
               }}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
         )}
-      </div>
+      </section>
     </main>
   )
 }

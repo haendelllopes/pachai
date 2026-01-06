@@ -7,24 +7,22 @@ export default function MessageBubble({ role, content }: MessageBubbleProps) {
   const isUser = role === 'user'
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: '1rem',
-    }}>
-      <div style={{
-        maxWidth: '70%',
-        padding: '0.75rem 1rem',
-        borderRadius: '0.75rem',
-        background: isUser ? '#1a1a1a' : '#f0f0f0',
-        color: isUser ? '#ffffff' : '#1a1a1a',
-        fontSize: '0.9375rem',
+    <div
+      className={`message ${isUser ? 'user' : 'pachai'}`}
+      style={{
+        maxWidth: '640px',
+        marginBottom: '1.5rem',
+        marginLeft: isUser ? 'auto' : '0',
+        marginRight: isUser ? '0' : 'auto',
+        color: 'var(--text-main)',
+        opacity: isUser ? 0.85 : 1,
+        fontSize: '1rem',
         lineHeight: 1.6,
         whiteSpace: 'pre-wrap',
         wordWrap: 'break-word',
-      }}>
-        {content}
-      </div>
+      }}
+    >
+      {content}
     </div>
   )
 }

@@ -1,3 +1,10 @@
+/*
+SISTEMA VISUAL PACHAI:
+- O texto é o protagonista
+- A interface nunca deve parecer produtiva ou acelerada
+- Se algo chamar atenção, está errado
+*/
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -5,6 +12,16 @@
 }
 
 :root {
+  /* Tokens do Sistema Visual Pachai (Design System Mínimo) */
+  --bg-main: oklch(0.98 0.01 85);
+  --bg-soft: oklch(0.96 0.01 85);
+  --text-main: oklch(0.25 0.01 85);
+  --text-soft: oklch(0.45 0.01 85);
+  --accent: oklch(0.75 0.09 70); /* dourado suave */
+  --border-soft: oklch(0.9 0.01 85);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+
   /* Paleta de cores da landing page - tons quentes e neutros */
   --landing-bg: oklch(0.98 0.01 85); /* Bege/creme suave */
   --landing-text: oklch(0.25 0.03 45); /* Marrom escuro quente */
