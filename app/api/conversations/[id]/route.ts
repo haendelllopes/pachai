@@ -6,11 +6,18 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const supabase = await createClient()
+  
+  // Primeiro tentar getSession para atualizar tokens se necessário
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  
+  // Depois tentar getUser para obter o usuário
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.error('Auth errors:', { sessionError, userError })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
