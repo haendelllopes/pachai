@@ -4,43 +4,40 @@ import Link from 'next/link'
 
 export default function TopNavigation() {
   return (
-    <nav
+    <header
+      className="landing-header"
       style={{
-        position: 'fixed',
+        position: 'sticky',
         top: 0,
-        left: 0,
-        right: 0,
-        height: '70px',
-        background: 'var(--landing-bg, oklch(0.98 0.01 85))',
-        borderBottom: '1px solid var(--landing-border, oklch(0.90 0.01 80))',
+        zIndex: 10,
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 clamp(1.5rem, 4vw, 2rem)',
-        zIndex: 100,
+        alignItems: 'center',
+        padding: '1rem 2rem',
+        background: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(6px)',
       }}
-      role="navigation"
-      aria-label="Navegação principal"
+      role="banner"
+      aria-label="Cabeçalho principal"
     >
       {/* Logo */}
-      <Link
-        href="/"
+      <span
+        className="logo"
         style={{
           fontFamily: 'Georgia, "Times New Roman", serif',
           fontSize: '1.25rem',
           fontWeight: 400,
           color: 'var(--landing-text, oklch(0.25 0.03 45))',
-          textDecoration: 'none',
           letterSpacing: '-0.01em',
         }}
-        aria-label="Pachai - Página inicial"
       >
         Pachai
-      </Link>
+      </span>
 
-      {/* Link Entrar */}
+      {/* Link Acessar */}
       <Link
         href="/login"
+        className="cta"
         style={{
           fontSize: '0.9375rem',
           fontWeight: 400,
@@ -48,7 +45,7 @@ export default function TopNavigation() {
           textDecoration: 'none',
           transition: 'opacity 0.2s ease',
         }}
-        aria-label="Entrar no Pachai"
+        aria-label="Acessar o Pachai"
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '0.7'
         }}
@@ -56,8 +53,8 @@ export default function TopNavigation() {
           e.currentTarget.style.opacity = '1'
         }}
       >
-        Entrar
+        Acessar
       </Link>
-    </nav>
+    </header>
   )
 }

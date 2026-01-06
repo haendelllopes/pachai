@@ -1,234 +1,202 @@
+/*
+REGRAS DE LAYOUT PACHAI:
+- Landing curta, sem rolagem excessiva
+- CTA apenas no header
+- Imagens servem à atmosfera, não à explicação
+- Nenhum asset visual decorativo sem função clara
+- O conteúdo deve caber quase inteiro em uma viewport comum
+*/
+
 import TopNavigation from '@/app/components/landing/TopNavigation'
+import Image from 'next/image'
 
 export default function LandingPage() {
   return (
     <>
       <TopNavigation />
+      
+      {/* Hero */}
       <main
+        className="hero"
         style={{
-          minHeight: '100vh',
-          background: 'var(--landing-bg, oklch(0.98 0.01 85))',
-          display: 'flex',
-          flexDirection: 'column',
-          paddingTop: 'calc(70px + clamp(3rem, 5vw, 4rem))',
-          paddingBottom: 'clamp(3rem, 5vw, 4rem)',
-          paddingLeft: 'clamp(1.5rem, 4vw, 2rem)',
-          paddingRight: 'clamp(1.5rem, 4vw, 2rem)',
+          textAlign: 'center',
+          padding: 'clamp(3rem, 6vh, 5rem) 1.5rem',
+          backgroundImage: 'url(/image/background-icon.jpeg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: 'var(--landing-bg, oklch(0.98 0.01 85))',
+          backgroundBlendMode: 'multiply',
         }}
         role="main"
         aria-label="Página inicial do Pachai"
       >
-        {/* 1. HERO */}
-        <section
+        <h1
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            maxWidth: '700px',
-            width: '100%',
-            margin: '0 auto',
-            marginBottom: 'clamp(3rem, 6vw, 4rem)',
-          }}
-          aria-labelledby="hero-headline"
-        >
-          {/* Headline */}
-          <h1
-            id="hero-headline"
-            style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              fontWeight: 400,
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              marginBottom: '1rem',
-              textAlign: 'center',
-              color: 'var(--landing-text, oklch(0.25 0.03 45))',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.3,
-              maxWidth: '600px',
-            }}
-          >
-            Um espaço para pensar com clareza.
-          </h1>
-
-          {/* Subheadline */}
-          <p
-            style={{
-              fontSize: 'clamp(1rem, 1.5vw, 1.125rem)',
-              lineHeight: 1.7,
-              textAlign: 'center',
-              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-              maxWidth: '580px',
-              fontWeight: 300,
-            }}
-          >
-            Pachai ajuda você a amadurecer decisões complexas sem pressa, sem perder contexto e sem abrir mão da autoria.
-          </p>
-        </section>
-
-        {/* 2. O QUE PACHAI É / NÃO É (MESCLADO) */}
-        <section
-          style={{
+            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            fontWeight: 400,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: '1rem',
+            color: 'var(--landing-text, oklch(0.25 0.03 45))',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.3,
             maxWidth: '600px',
-            width: '100%',
-            margin: '0 auto',
-            marginBottom: 'clamp(3rem, 6vw, 4rem)',
+            margin: '0 auto 1rem',
           }}
-          aria-label="O que o Pachai é e não é"
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.8,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Escuta antes de estruturar
-            </p>
+          Um espaço para escutar antes de decidir
+        </h1>
 
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.8,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Reflete sem distorcer
-            </p>
-
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.8,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Permite pausar sem perder o fio
-            </p>
-
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.8,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Pachai não decide por você.
-            </p>
-
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.8,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Não transforma pensamento em checklist.
-            </p>
-          </div>
-        </section>
-
-        {/* 3. COMO FUNCIONA */}
-        <section
+        <p
+          className="subtitle"
           style={{
-            maxWidth: '600px',
-            width: '100%',
+            fontSize: 'clamp(1rem, 1.5vw, 1.125rem)',
+            lineHeight: 1.7,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            maxWidth: '580px',
+            fontWeight: 300,
             margin: '0 auto',
-            marginBottom: 'clamp(3rem, 6vw, 4rem)',
           }}
-          aria-label="Como funciona"
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.85,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Você traz um assunto
-            </p>
+          O Pachai não entrega respostas. Ele sustenta o processo até a clareza surgir.
+        </p>
 
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.85,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Pachai conversa com você
-            </p>
-
-            <p
-              style={{
-                fontSize: '1rem',
-                lineHeight: 1.85,
-                textAlign: 'center',
-                color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-                fontWeight: 300,
-              }}
-            >
-              Você chega à sua própria clareza
-            </p>
-          </div>
-        </section>
-
-        {/* FOOTER */}
-        <footer
+        <Image
+          src="/image/hero-icon.jpeg"
+          alt="Símbolo Pachai"
+          width={96}
+          height={96}
+          className="hero-icon"
           style={{
-            marginTop: 'auto',
-            paddingTop: 'clamp(2rem, 3vw, 3rem)',
-            textAlign: 'center',
+            width: '96px',
+            height: '96px',
+            margin: '2rem auto 0',
+            opacity: 0.9,
           }}
-        >
-          <p
-            style={{
-              fontSize: '0.875rem',
-              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
-              fontWeight: 300,
-            }}
-          >
-            © Haendell Lopes —{' '}
-            <a
-              href="https://haendell.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: 'inherit',
-                textDecoration: 'underline',
-                textUnderlineOffset: '2px',
-              }}
-            >
-              haendell.com
-            </a>
-          </p>
-        </footer>
+        />
       </main>
+
+      {/* Manifesto */}
+      <section
+        className="manifesto"
+        style={{
+          maxWidth: '720px',
+          margin: '0 auto',
+          padding: 'clamp(2rem, 4vh, 3rem) 1.5rem',
+          fontSize: '1.05rem',
+          lineHeight: 1.6,
+          opacity: 0.9,
+        }}
+        aria-label="Manifesto do Pachai"
+      >
+        <p
+          style={{
+            marginBottom: '1rem',
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          O Pachai é um espaço de escuta contínua.
+          Ele não decide por você, não acelera conclusões
+          e não transforma reflexão em checklist.
+        </p>
+
+        <p
+          style={{
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          Ele sustenta perguntas até que o veredito
+          seja realmente seu.
+        </p>
+      </section>
+
+      {/* Divisor Visual */}
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '2.5rem auto' }}>
+        <Image
+          src="/image/divisor-icon.jpeg"
+          alt=""
+          width={420}
+          height={100}
+          aria-hidden="true"
+          className="divider"
+          style={{
+            display: 'block',
+            width: '100%',
+            maxWidth: '420px',
+            opacity: 0.6,
+            height: 'auto',
+          }}
+        />
+      </div>
+
+      {/* Como Funciona */}
+      <section
+        className="how-it-works"
+        style={{
+          maxWidth: '640px',
+          margin: '0 auto',
+          padding: '0 1.5rem 3rem',
+        }}
+        aria-label="Como funciona"
+      >
+        <ul
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          <li
+            style={{
+              marginBottom: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+              fontWeight: 300,
+            }}
+          >
+            Você traz o que está em aberto.
+          </li>
+          <li
+            style={{
+              marginBottom: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+              fontWeight: 300,
+            }}
+          >
+            O Pachai sustenta a conversa com cuidado.
+          </li>
+          <li
+            style={{
+              marginBottom: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+              fontWeight: 300,
+            }}
+          >
+            O veredito só existe quando você o reconhece.
+          </li>
+        </ul>
+      </section>
+
+      {/* Footer */}
+      <footer
+        className="footer"
+        style={{
+          textAlign: 'center',
+          padding: '2rem 1rem',
+          fontSize: '0.85rem',
+          opacity: 0.6,
+          color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+        }}
+      >
+        <span>Pachai — Espaço de Escuta Contínua</span>
+      </footer>
     </>
   )
 }
