@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import MessageBubble from './MessageBubble'
 import VeredictForm from './VeredictForm'
-import { generatePachaiResponse, detectVeredictSignal } from '@/app/lib/pachai/agent'
+import { detectVeredictSignal } from '@/app/lib/pachai/agent'
 import { createClient } from '@/app/lib/supabase/client'
 
 interface Message {
@@ -138,7 +138,30 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
     // Generate Pachai response using API
     try {
-      const pachaiContent = await generatePachaiResponse(conversationId, userContent)
+      // Construir histórico da conversa como string
+      const conversationHistory = messages
+        .map(m => `${m.role === 'user' ? 'Usuário' : 'Pachai'}: ${m.content}`)
+        .join('\n')
+
+      // Chamar API route
+      const response = await fetch('/api/pachai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationHistory,
+          userMessage: userContent,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to generate response')
+      }
+
+      const data = await response.json()
+      const pachaiContent = data.reply
 
       if (!pachaiContent) {
         throw new Error('Empty response from Pachai')
