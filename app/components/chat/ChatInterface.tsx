@@ -152,6 +152,51 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       // A mensagem já foi salva pela API route, buscar atualizada
       await fetchMessages()
       
+      // Gerar título automaticamente após 5 mensagens
+      // Verificar após buscar mensagens atualizadas
+      const checkAndGenerateTitle = async () => {
+        const supabase = createClient()
+        const { data: currentMessages } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+        
+        if (currentMessages && currentMessages.length === 5) {
+          // Verificar se já tem título
+          const { data: conv } = await supabase
+            .from('conversations')
+            .select('title')
+            .eq('id', conversationId)
+            .single()
+          
+          if (!conv?.title) {
+            try {
+              const titleResponse = await fetch('/api/conversations/generate-title', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  conversationId,
+                  messages: currentMessages,
+                }),
+              })
+              
+              if (titleResponse.ok) {
+                // Título será atualizado no banco, refresh da página atualizará header
+                window.location.reload()
+              }
+            } catch (error) {
+              console.error('Error generating conversation title:', error)
+              // Não bloquear o fluxo se falhar
+            }
+          }
+        }
+      }
+      
+      checkAndGenerateTitle()
+      
       // Check if Pachai response is asking about veredict confirmation
       // O prompt de confirmação pode indicar que há suspeita de veredito
       if (pachaiContent.includes('veredito para você') ||

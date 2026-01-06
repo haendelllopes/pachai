@@ -12,6 +12,7 @@ export default function ConversationPage() {
   const conversationId = params.conversationId as string
   
   const [productName, setProductName] = useState<string>('')
+  const [conversationTitle, setConversationTitle] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +41,7 @@ export default function ConversationPage() {
       // Verificar se a conversa existe e pertence ao produto
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
-        .select('id, product_id')
+        .select('id, product_id, title')
         .eq('id', conversationId)
         .eq('product_id', productId)
         .single()
@@ -50,6 +51,10 @@ export default function ConversationPage() {
         setError('Conversa não encontrada')
         setLoading(false)
         return
+      }
+
+      if (conversation) {
+        setConversationTitle(conversation.title)
       }
 
       setLoading(false)
@@ -129,7 +134,7 @@ export default function ConversationPage() {
           margin: 0,
           opacity: 0.75,
         }}>
-          Um espaço de escuta contínua
+          {conversationTitle || 'Nova conversa'}
         </p>
       </div>
       

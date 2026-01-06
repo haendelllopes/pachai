@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/app/lib/supabase/client'
+import ContextMenu from './ContextMenu'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 interface Product {
   id: string
@@ -24,6 +27,53 @@ export default function ProductsSidebar() {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>('')
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    type: 'product' | 'conversation'
+    id: string
+    name: string
+    x: number
+    y: number
+  } | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{
+    type: 'product' | 'conversation'
+    id: string
+    name: string
+  } | null>(null)
+  const [editingItem, setEditingItem] = useState<{
+    type: 'product' | 'conversation'
+    id: string
+    currentName: string
+  } | null>(null)
+  
+  // Estado collapsed com persistência em localStorage
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebarCollapsed') === 'true'
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', String(collapsed))
+    }
+  }, [collapsed])
+
+  // Fechar menu do usuário ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showUserMenu])
 
   useEffect(() => {
     async function fetchUser() {
@@ -116,6 +166,40 @@ export default function ProductsSidebar() {
     router.push('/login')
   }
 
+  async function handleDeleteProduct(productId: string) {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchProducts()
+        // Se estava na página do produto, redirecionar
+        if (pathname?.includes(`/products/${productId}`)) {
+          router.push('/products')
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error)
+    }
+  }
+
+  async function handleDeleteConversation(conversationId: string, productId: string) {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchConversations(productId)
+        // Se estava na conversa deletada, redirecionar
+        if (pathname?.includes(`/conversations/${conversationId}`)) {
+          router.push(`/products/${productId}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error)
+    }
+  }
+
   useEffect(() => {
     fetchProducts()
   }, [])
@@ -141,20 +225,22 @@ export default function ProductsSidebar() {
 
   // Detectar se está em uma conversa ativa
   const isInConversation = pathname?.includes('/conversations/')
+  const sidebarWidth = collapsed ? '64px' : '260px'
 
   return (
     <aside 
-      className={`sidebar ${isInConversation ? 'in-conversation' : ''}`}
+      className={`sidebar ${collapsed ? 'sidebar--collapsed' : 'sidebar--expanded'} ${isInConversation ? 'in-conversation' : ''}`}
       style={{
-        width: '260px',
+        width: sidebarWidth,
         height: '100vh',
         background: 'var(--bg-main)',
         borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px 16px',
-        transition: 'opacity 0.3s ease',
+        padding: collapsed ? '16px 8px' : '24px 16px',
+        transition: 'width 0.2s ease, opacity 0.3s ease, padding 0.2s ease',
         opacity: isInConversation ? 0.6 : 1,
+        position: 'relative',
       }}
       onMouseEnter={(e) => {
         if (isInConversation) {
@@ -167,20 +253,62 @@ export default function ProductsSidebar() {
         }
       }}
     >
-      {/* Título discreto */}
-      <div
-        className="sidebar-section-title"
-        style={{
-          fontSize: '0.75rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--text-muted)',
-          opacity: 0.6,
-          marginBottom: '12px',
-        }}
+      {/* Ícone do Pachai no topo */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        marginBottom: collapsed ? '24px' : '16px',
+        cursor: 'pointer',
+      }}
+      onClick={() => setCollapsed(!collapsed)}
       >
-        PROJETOS
+        <Image
+          src="/image/hero-icon.jpeg"
+          alt="Pachai"
+          width={collapsed ? 32 : 24}
+          height={collapsed ? 32 : 24}
+          style={{
+            width: collapsed ? '32px' : '24px',
+            height: collapsed ? '32px' : '24px',
+            opacity: 0.85,
+          }}
+        />
+        {collapsed && (
+          <div
+            className="sidebar--hover-expand"
+            style={{
+              position: 'absolute',
+              left: '68px',
+              top: '16px',
+              fontSize: '1.25rem',
+              color: 'var(--text-main)',
+              opacity: 0.6,
+              pointerEvents: 'none',
+              transition: 'opacity 0.2s',
+            }}
+          >
+            ›
+          </div>
+        )}
       </div>
+
+      {/* Título discreto - escondido quando colapsado */}
+      {!collapsed && (
+        <div
+          className="sidebar-section-title"
+          style={{
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)',
+            opacity: 0.6,
+            marginBottom: '12px',
+          }}
+        >
+          PROJETOS
+        </div>
+      )}
 
       {/* Projects List */}
       <nav style={{
@@ -192,8 +320,9 @@ export default function ProductsSidebar() {
             padding: '1rem',
             textAlign: 'center',
             color: 'var(--text-muted)',
-            fontSize: '0.875rem',
+            fontSize: collapsed ? '0.75rem' : '0.875rem',
             opacity: 0.6,
+            display: collapsed ? 'none' : 'block',
           }}>
             Carregando...
           </div>
@@ -204,6 +333,7 @@ export default function ProductsSidebar() {
             color: 'var(--text-muted)',
             fontSize: '0.875rem',
             opacity: 0.6,
+            display: collapsed ? 'none' : 'block',
           }}>
             Nenhum projeto ainda
           </div>
@@ -216,41 +346,132 @@ export default function ProductsSidebar() {
               const isConversationPage = pathname?.startsWith(`/products/${product.id}/conversations/`)
               const isActive = isProductPage || isConversationPage
 
+              const isEditingProduct = editingItem?.type === 'product' && editingItem.id === product.id
+
               return (
-                <div key={product.id}>
+                <div key={product.id} style={{ position: 'relative' }}>
                   {/* Project Item */}
-                  <button
-                    onClick={() => toggleProduct(product.id)}
-                    className="project-item"
-                    style={{
-                      fontSize: '0.95rem',
-                      color: 'var(--text-main)',
-                      opacity: isActive ? 1 : 0.85,
-                      padding: '6px 4px',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      fontWeight: isActive ? 500 : 400,
-                      width: '100%',
-                      textAlign: 'left',
-                      border: 'none',
-                      background: 'transparent',
-                      transition: 'all 0.2s',
-                      marginBottom: '2px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = '1'
-                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.02)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = isActive ? '1' : '0.85'
-                      e.currentTarget.style.background = 'transparent'
-                    }}
-                  >
-                    {product.name}
-                  </button>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginBottom: '2px',
+                  }}>
+                    {isEditingProduct ? (
+                      <input
+                        type="text"
+                        defaultValue={product.name}
+                        onBlur={async (e) => {
+                          const newName = e.target.value.trim()
+                          if (newName && newName !== product.name) {
+                            try {
+                              const response = await fetch(`/api/products/${product.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: newName }),
+                              })
+                              if (response.ok) {
+                                await fetchProducts()
+                                router.refresh()
+                              }
+                            } catch (error) {
+                              console.error('Error updating product:', error)
+                            }
+                          }
+                          setEditingItem(null)
+                          setContextMenu(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur()
+                          } else if (e.key === 'Escape') {
+                            setEditingItem(null)
+                          }
+                        }}
+                        autoFocus
+                        style={{
+                          flex: 1,
+                          fontSize: '0.95rem',
+                          padding: '6px 4px',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          background: 'white',
+                          outline: 'none',
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleProduct(product.id)}
+                          className="project-item"
+                          style={{
+                            flex: 1,
+                            fontSize: '0.95rem',
+                            color: 'var(--text-main)',
+                            opacity: isActive ? 1 : 0.85,
+                            padding: '6px 4px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            fontWeight: isActive ? 500 : 400,
+                            textAlign: 'left',
+                            border: 'none',
+                            background: 'transparent',
+                            transition: 'all 0.2s',
+                            display: collapsed ? 'none' : 'block',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '1'
+                            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.02)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = isActive ? '1' : '0.85'
+                            e.currentTarget.style.background = 'transparent'
+                          }}
+                        >
+                          {product.name}
+                        </button>
+                        {!collapsed && (
+                          <div style={{ position: 'relative' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setContextMenu({
+                                  type: 'product',
+                                  id: product.id,
+                                  name: product.name,
+                                  x: rect.right,
+                                  y: rect.top,
+                                })
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '1rem',
+                                color: 'var(--text-muted)',
+                                opacity: 0.6,
+                                display: 'flex',
+                                alignItems: 'center',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = '1'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = '0.6'
+                              }}
+                            >
+                              ⋯
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   {/* Conversations List */}
-                  {isExpanded && (
+                  {!collapsed && isExpanded && (
                     <div
                       className="conversation-list"
                       style={{
@@ -261,31 +482,121 @@ export default function ProductsSidebar() {
                     >
                       {conversations.map((conversation) => {
                         const isConvActive = pathname === `/products/${product.id}/conversations/${conversation.id}`
+                        const isEditingConv = editingItem?.type === 'conversation' && editingItem.id === conversation.id
+                        const convTitle = conversation.title || 'Nova conversa'
+
                         return (
-                          <Link
-                            key={conversation.id}
-                            href={`/products/${product.id}/conversations/${conversation.id}`}
-                            className="conversation-item"
-                            style={{
-                              fontSize: '0.85rem',
-                              color: 'var(--text-main)',
-                              opacity: isConvActive ? 0.9 : 0.6,
-                              padding: '4px 4px',
-                              cursor: 'pointer',
-                              display: 'block',
-                              textDecoration: 'none',
-                              transition: 'all 0.2s',
-                              marginBottom: '2px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.opacity = '0.8'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.opacity = isConvActive ? '0.9' : '0.6'
-                            }}
-                          >
-                            {conversation.title || 'Nova conversa'}
-                          </Link>
+                          <div key={conversation.id} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            marginBottom: '2px',
+                          }}>
+                            {isEditingConv ? (
+                              <input
+                                type="text"
+                                defaultValue={convTitle}
+                                onBlur={async (e) => {
+                                  const newTitle = e.target.value.trim()
+                                  if (newTitle && newTitle !== convTitle) {
+                                    try {
+                                      const response = await fetch(`/api/conversations/${conversation.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ title: newTitle }),
+                                      })
+                                      if (response.ok) {
+                                        await fetchConversations(product.id)
+                                        router.refresh()
+                                      }
+                                    } catch (error) {
+                                      console.error('Error updating conversation:', error)
+                                    }
+                                  }
+                                  setEditingItem(null)
+                                  setContextMenu(null)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur()
+                                  } else if (e.key === 'Escape') {
+                                    setEditingItem(null)
+                                  }
+                                }}
+                                autoFocus
+                                style={{
+                                  flex: 1,
+                                  fontSize: '0.85rem',
+                                  padding: '4px 4px',
+                                  border: '1px solid var(--border-subtle)',
+                                  borderRadius: '6px',
+                                  background: 'white',
+                                  outline: 'none',
+                                }}
+                              />
+                            ) : (
+                              <>
+                                <Link
+                                  href={`/products/${product.id}/conversations/${conversation.id}`}
+                                  className="conversation-item"
+                                  style={{
+                                    flex: 1,
+                                    fontSize: '0.85rem',
+                                    color: 'var(--text-main)',
+                                    opacity: isConvActive ? 0.9 : 0.6,
+                                    padding: '4px 4px',
+                                    cursor: 'pointer',
+                                    display: 'block',
+                                    textDecoration: 'none',
+                                    transition: 'all 0.2s',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.opacity = '0.8'
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.opacity = isConvActive ? '0.9' : '0.6'
+                                  }}
+                                >
+                                  {convTitle}
+                                </Link>
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.preventDefault()
+                                      const rect = e.currentTarget.getBoundingClientRect()
+                                      setContextMenu({
+                                        type: 'conversation',
+                                        id: conversation.id,
+                                        name: convTitle,
+                                        x: rect.right,
+                                        y: rect.top,
+                                      })
+                                    }}
+                                    style={{
+                                      padding: '2px 6px',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      fontSize: '0.875rem',
+                                      color: 'var(--text-muted)',
+                                      opacity: 0.6,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.opacity = '1'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.opacity = '0.6'
+                                    }}
+                                  >
+                                    ⋯
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         )
                       })}
                     </div>
@@ -297,64 +608,240 @@ export default function ProductsSidebar() {
         )}
       </nav>
 
-      {/* Ação de criação */}
-      <Link
-        href="/products/new"
-        className="create-project"
-        style={{
-          marginTop: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontSize: '0.9rem',
-          color: 'var(--text-main)',
-          opacity: 0.65,
-          cursor: 'pointer',
-          padding: '6px 4px',
-          borderRadius: '6px',
-          textDecoration: 'none',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '1'
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '0.65'
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
-        <span>Novo projeto</span>
-      </Link>
+      {/* Ação de criação - movida para zona inferior */}
+      {!collapsed && (
+        <Link
+          href="/products/new"
+          className="create-project"
+          style={{
+            marginTop: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.9rem',
+            color: 'var(--text-main)',
+            opacity: 0.65,
+            cursor: 'pointer',
+            padding: '6px 4px',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1'
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.65'
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
+          <span>Novo projeto</span>
+        </Link>
+      )}
 
       {/* Separador invisível */}
       <div style={{ flexGrow: 1 }} />
 
       {/* Menu do usuário */}
-      <div
-        className="sidebar-user"
-        onClick={handleLogout}
-        style={{
-          fontSize: '0.85rem',
-          color: 'var(--text-main)',
-          opacity: 0.6,
-          cursor: 'pointer',
-          padding: '8px 6px',
-          borderRadius: '6px',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '0.85'
-          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '0.6'
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        {userName}
+      <div ref={userMenuRef} style={{ position: 'relative' }}>
+        <div
+          className="sidebar-user"
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-main)',
+            opacity: 0.6,
+            cursor: 'pointer',
+            padding: collapsed ? '8px' : '8px 6px',
+            borderRadius: '6px',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            width: collapsed ? '32px' : 'auto',
+            height: collapsed ? '32px' : 'auto',
+            margin: collapsed ? '0 auto' : '0',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.85'
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.6'
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          {collapsed ? (
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'var(--text-main)',
+              color: 'var(--bg-main)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+            }}>
+              {userName.charAt(0).toUpperCase()}
+            </div>
+          ) : (
+            userName
+          )}
+        </div>
+
+        {/* Dropdown do menu do usuário */}
+        {showUserMenu && !collapsed && (
+          <div style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 0,
+            marginBottom: '8px',
+            background: 'white',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden',
+            minWidth: '160px',
+            zIndex: 1000,
+          }}>
+            <div style={{
+              padding: '0.5rem 0',
+            }}>
+              <div style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'var(--text-main)',
+                borderBottom: '1px solid var(--border-subtle)',
+                marginBottom: '0.25rem',
+              }}>
+                {userName}
+              </div>
+              <button
+                onClick={() => {
+                  setShowUserMenu(false)
+                  // Placeholder para configurações
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-main)',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                Configurações
+              </button>
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  borderTop: '1px solid var(--border-subtle)',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: '#d32f2f',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div style={{
+          position: 'fixed',
+          left: contextMenu.x,
+          top: contextMenu.y,
+          zIndex: 1000,
+        }}>
+          <ContextMenu
+            items={[
+              {
+                label: contextMenu.type === 'product' ? 'Renomear projeto' : 'Renomear conversa',
+                onClick: () => {
+                  setEditingItem({
+                    type: contextMenu.type,
+                    id: contextMenu.id,
+                    currentName: contextMenu.name,
+                  })
+                  setContextMenu(null)
+                },
+              },
+              {
+                label: contextMenu.type === 'product' ? 'Excluir projeto' : 'Excluir conversa',
+                onClick: () => {
+                  setDeleteModal({
+                    type: contextMenu.type,
+                    id: contextMenu.id,
+                    name: contextMenu.name,
+                  })
+                },
+                danger: true,
+              },
+            ]}
+            onClose={() => setContextMenu(null)}
+          />
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <ConfirmDeleteModal
+          isOpen={true}
+          onClose={() => setDeleteModal(null)}
+          onConfirm={() => {
+            if (deleteModal.type === 'product') {
+              handleDeleteProduct(deleteModal.id)
+            } else {
+              // Encontrar productId da conversa
+              const productId = Object.keys(conversationsByProduct).find(pId =>
+                conversationsByProduct[pId].some(c => c.id === deleteModal.id)
+              )
+              if (productId) {
+                handleDeleteConversation(deleteModal.id, productId)
+              }
+            }
+          }}
+          title={deleteModal.type === 'product' ? 'Excluir projeto?' : 'Excluir conversa?'}
+          message={deleteModal.type === 'product' 
+            ? `Tem certeza que deseja excluir o projeto "${deleteModal.name}"?`
+            : `Tem certeza que deseja excluir a conversa "${deleteModal.name}"?`
+          }
+          itemName={deleteModal.name}
+          cascadeWarning={deleteModal.type === 'product'
+            ? 'Isso excluirá permanentemente todas as conversas, mensagens e vereditos associados a este projeto.'
+            : 'Isso excluirá permanentemente todas as mensagens e vereditos associados a esta conversa.'
+          }
+        />
+      )}
     </aside>
   )
 }
