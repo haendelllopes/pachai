@@ -1,12 +1,15 @@
 import { BASE_PACHAI_PROMPT } from './prompts/base'
 import { VEREDICT_CONFIRMATION_PROMPT } from './prompts/veredict'
+import { REOPEN_PROMPT } from './prompts/reopen'
 import { getPromptForState, ConversationState } from './prompts'
 import { inferConversationState } from './states'
-import { getConversationMessages } from './db'
+import { getConversationMessages, getConversation } from './db'
+import { getPreviousVeredicts } from './agent'
 import { Message } from './agent'
 import OpenAI from 'openai'
+import { createClient } from '@/app/lib/supabase/server'
 
-export type PachaiMode = 'NORMAL' | 'VEREDICT_CONFIRMATION'
+export type PachaiMode = 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE'
 
 type PachaiRuntimeInput = {
   conversationId: string
@@ -21,6 +24,7 @@ async function callOpenAI(params: {
   systemPrompt: string
   messages: Message[]
   userMessage: string
+  maxHistoryMessages?: number
 }): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured')
@@ -38,8 +42,9 @@ async function callOpenAI(params: {
     },
   ]
 
-  // Adicionar histórico (últimas 20 mensagens)
-  const recentMessages = params.messages.slice(-20)
+  // Limitar histórico baseado no parâmetro (padrão 20, mas pode ser reduzido para 6-8)
+  const maxHistory = params.maxHistoryMessages || 20
+  const recentMessages = params.messages.slice(-maxHistory)
   for (const msg of recentMessages) {
     openAIMessages.push({
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -77,31 +82,86 @@ export async function getPachaiResponse({
   userMessage,
   mode
 }: PachaiRuntimeInput): Promise<string> {
+  // 1. Buscar informações da conversa (incluindo status)
+  const conversation = await getConversation(conversationId)
+  
+  // 2. Buscar histórico de mensagens
   const history = await getConversationMessages(conversationId)
 
   let systemPrompt = BASE_PACHAI_PROMPT
+  let messagesToSend = history
+  let maxHistoryMessages = 20
 
-  if (mode === 'VEREDICT_CONFIRMATION') {
+  if (mode === 'PAUSE') {
+    // Modo de pausa: usuário pediu explicitamente para pausar
+    // Usar prompt de pause para validar a escolha consciente
+    systemPrompt = getPromptForState('pause')
+    // Limitar histórico a apenas últimas 2-3 mensagens para contexto mínimo
+    maxHistoryMessages = 3
+  } else if (mode === 'VEREDICT_CONFIRMATION') {
+    // Modo de confirmação de veredito
     systemPrompt = `
 ${BASE_PACHAI_PROMPT}
 
 ${VEREDICT_CONFIRMATION_PROMPT}
 `
+    // Limitar histórico mesmo em modo de veredito
+    maxHistoryMessages = 8
+  } else if (conversation.status === 'PAUSED') {
+    // Conversa pausada sendo retomada - usar prompt de reabertura
+    const supabase = await createClient()
+    const previousVeredicts = await getPreviousVeredicts(conversation.product_id, supabase)
+
+    systemPrompt = `
+${BASE_PACHAI_PROMPT}
+
+${REOPEN_PROMPT}
+`
+
+    // Se há veredito anterior, adicionar contexto
+    if (previousVeredicts.length > 0) {
+      const lastVeredict = previousVeredicts[0]
+      systemPrompt += `
+
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Veredito Anterior
+━━━━━━━━━━━━━━━━━━
+
+Na última conversa, foi registrado:
+
+Dor: ${lastVeredict.pain}
+Valor: ${lastVeredict.value}
+
+O usuário está retomando essa conversa. Pergunte o que mudou desde então.
+`
+    }
+
+    // Limitar histórico para reabertura (apenas últimas 3-4 mensagens para contexto)
+    maxHistoryMessages = 4
   } else {
-    // Modo NORMAL: usar sistema de prompts por estado
+    // Modo NORMAL com conversa ACTIVE: usar sistema de prompts por estado
+    // NUNCA usar prompt de reabertura quando status === 'ACTIVE'
     const conversationHistory = history
       .map(m => `${m.role === 'user' ? 'Usuário' : 'Pachai'}: ${m.content}`)
       .join('\n')
 
     const state = inferConversationState(conversationHistory || '') as ConversationState
-    const statePrompt = getPromptForState(state)
+    
+    // Garantir que nunca retorne 'reopen' quando status é ACTIVE
+    const finalState = state === 'reopen' ? 'exploration' : state
+    
+    const statePrompt = getPromptForState(finalState)
     systemPrompt = statePrompt
+    
+    // Limitar histórico a 6-8 mensagens quando ACTIVE
+    maxHistoryMessages = 8
   }
 
   return callOpenAI({
     systemPrompt,
-    messages: history,
-    userMessage
+    messages: messagesToSend,
+    userMessage,
+    maxHistoryMessages
   })
 }
 

@@ -1,6 +1,53 @@
 import { createClient } from '@/app/lib/supabase/server'
 import { Message } from './agent'
 
+export type ConversationStatus = 'ACTIVE' | 'PAUSED' | 'CLOSED'
+
+export interface Conversation {
+  id: string
+  status: ConversationStatus
+  last_activity_at: string
+  paused_at?: string
+  product_id: string
+}
+
+/**
+ * Busca informações da conversa (status, last_activity_at, etc.)
+ */
+export async function getConversation(conversationId: string): Promise<Conversation> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Buscar conversa com validação de permissão
+  const { data: conversation, error: convError } = await supabase
+    .from('conversations')
+    .select('id, status, last_activity_at, paused_at, product_id, products!inner(user_id)')
+    .eq('id', conversationId)
+    .single()
+
+  if (convError || !conversation) {
+    throw new Error('Conversation not found')
+  }
+
+  if ((conversation.products as any).user_id !== user.id) {
+    throw new Error('Forbidden')
+  }
+
+  return {
+    id: conversation.id,
+    status: (conversation.status || 'ACTIVE') as ConversationStatus,
+    last_activity_at: conversation.last_activity_at || new Date().toISOString(),
+    paused_at: conversation.paused_at || undefined,
+    product_id: conversation.product_id,
+  }
+}
+
 /**
  * Busca todas as mensagens de uma conversa
  */
@@ -14,20 +61,8 @@ export async function getConversationMessages(conversationId: string): Promise<M
     throw new Error('Unauthorized')
   }
 
-  // Verificar se a conversa pertence ao usuário
-  const { data: conversation, error: convError } = await supabase
-    .from('conversations')
-    .select('product_id, products!inner(user_id)')
-    .eq('id', conversationId)
-    .single()
-
-  if (convError || !conversation) {
-    throw new Error('Conversation not found')
-  }
-
-  if ((conversation.products as any).user_id !== user.id) {
-    throw new Error('Forbidden')
-  }
+  // Verificar se a conversa pertence ao usuário (usar getConversation para validação)
+  await getConversation(conversationId)
 
   // Buscar mensagens
   const { data: messages, error: messagesError } = await supabase
@@ -63,20 +98,8 @@ export async function saveMessage(params: {
     throw new Error('Unauthorized')
   }
 
-  // Verificar se a conversa pertence ao usuário
-  const { data: conversation, error: convError } = await supabase
-    .from('conversations')
-    .select('product_id, products!inner(user_id)')
-    .eq('id', params.conversationId)
-    .single()
-
-  if (convError || !conversation) {
-    throw new Error('Conversation not found')
-  }
-
-  if ((conversation.products as any).user_id !== user.id) {
-    throw new Error('Forbidden')
-  }
+  // Verificar se a conversa pertence ao usuário e obter status atual
+  const conversation = await getConversation(params.conversationId)
 
   // Salvar mensagem
   const { data: message, error: messageError } = await supabase
@@ -93,9 +116,84 @@ export async function saveMessage(params: {
     throw new Error('Failed to save message')
   }
 
+  // Atualizar last_activity_at e status (se estava PAUSED, mudar para ACTIVE)
+  const updates: { last_activity_at: string; status?: ConversationStatus } = {
+    last_activity_at: new Date().toISOString(),
+  }
+
+  if (conversation.status === 'PAUSED') {
+    updates.status = 'ACTIVE'
+  }
+
+  await supabase
+    .from('conversations')
+    .update(updates)
+    .eq('id', params.conversationId)
+
   return {
     role: message.role as 'user' | 'pachai',
     content: message.content,
+  }
+}
+
+/**
+ * Pausa uma conversa (muda status para PAUSED)
+ */
+export async function pauseConversation(conversationId: string): Promise<void> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Validar permissão
+  await getConversation(conversationId)
+
+  const now = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ 
+      status: 'PAUSED',
+      paused_at: now,
+      last_activity_at: now
+    })
+    .eq('id', conversationId)
+
+  if (error) {
+    throw new Error('Failed to pause conversation')
+  }
+}
+
+/**
+ * Retoma uma conversa (muda status de PAUSED para ACTIVE)
+ */
+export async function resumeConversation(conversationId: string): Promise<void> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Validar permissão
+  await getConversation(conversationId)
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ 
+      status: 'ACTIVE',
+      last_activity_at: new Date().toISOString()
+    })
+    .eq('id', conversationId)
+
+  if (error) {
+    throw new Error('Failed to resume conversation')
   }
 }
 

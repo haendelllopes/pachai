@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { detectVeredictSignal } from '@/app/lib/pachai/agent'
 import { getPachaiResponse } from '@/app/lib/pachai/runtime'
-import { getConversationMessages, saveMessage } from '@/app/lib/pachai/db'
+import { getConversationMessages, saveMessage, pauseConversation } from '@/app/lib/pachai/db'
+import { shouldPauseConversation } from '@/app/lib/pachai/pause'
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,26 +25,39 @@ export async function POST(req: NextRequest) {
       content: userMessage
     })
 
-    // 3. Detectar possível veredito
-    const userMessages = messages
-      .filter(m => m.role === 'user')
-      .map(m => m.content)
+    // 3. Verificar se usuário pediu para pausar a conversa
+    const shouldPause = shouldPauseConversation(userMessage)
+
+    // 4. Se usuário pediu para pausar, atualizar status da conversa
+    if (shouldPause) {
+      await pauseConversation(conversationId)
+    }
+
+    // 5. Detectar possível veredito (incluindo mensagem atual)
+    const userMessages = [
+      ...messages.filter(m => m.role === 'user').map(m => m.content),
+      userMessage
+    ]
 
     const veredictSignal = detectVeredictSignal(userMessages)
 
-    // 4. Se houver suspeita, mudar o modo de resposta
-    const mode = veredictSignal.suspected
-      ? 'VEREDICT_CONFIRMATION'
-      : 'NORMAL'
+    // 6. Determinar modo de resposta
+    // Prioridade: PAUSE > VEREDICT_CONFIRMATION > NORMAL
+    let mode: 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' = 'NORMAL'
+    if (shouldPause) {
+      mode = 'PAUSE'
+    } else if (veredictSignal.suspected) {
+      mode = 'VEREDICT_CONFIRMATION'
+    }
 
-    // 5. Gerar resposta do Pachai
+    // 7. Gerar resposta do Pachai
     const pachaiResponse = await getPachaiResponse({
       conversationId,
       userMessage,
       mode
     })
 
-    // 6. Salvar resposta do Pachai
+    // 8. Salvar resposta do Pachai
     await saveMessage({
       conversationId,
       role: 'pachai',

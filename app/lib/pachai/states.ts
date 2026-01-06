@@ -37,29 +37,9 @@ export function inferConversationStateFromMessages(
     }
   }
 
-  // Se há vereditos anteriores e a conversa está retomando, pode ser Reabertura
-  if (previousVeredicts.length > 0 && messages.length > 0) {
-    const lastVeredict = previousVeredicts[0]
-    const lastMessage = messages[messages.length - 1]
-    
-    // Se a primeira mensagem menciona algo relacionado ao veredito anterior
-    if (userMessages.length <= 2) {
-      const firstUserMessage = userMessages[0]?.content.toLowerCase() || ''
-      const mentionsPrevious = 
-        firstUserMessage.includes('mudou') ||
-        firstUserMessage.includes('atualizar') ||
-        firstUserMessage.includes('revisar') ||
-        firstUserMessage.includes('retomar')
-      
-      if (mentionsPrevious) {
-        return {
-          primary: ConversationState.REABERTURA,
-          confidence: 0.75,
-          secondary: ConversationState.EXPLORACAO,
-        }
-      }
-    }
-  }
+  // NOTA: Reabertura não é mais inferida aqui
+  // Reabertura só acontece quando conversation.status === 'PAUSED'
+  // Esta função infere apenas estados de pensamento (exploration, clarification, convergence, etc.)
 
   // Se há poucas mensagens (1-3), provavelmente está em Exploração
   if (userMessages.length <= 3) {
@@ -144,12 +124,11 @@ export function inferConversationStateFromMessages(
  * Infere o estado da conversa a partir do histórico (string)
  * Wrapper para compatibilidade com API route
  */
-export function inferConversationState(conversationHistory: string): 'exploration' | 'clarification' | 'convergence' | 'veredict' | 'pause' | 'reopen' {
+export function inferConversationState(conversationHistory: string): 'exploration' | 'clarification' | 'convergence' | 'veredict' | 'pause' {
   const history = conversationHistory.toLowerCase()
   
-  if (history.includes('mudou') || history.includes('atualizar') || history.includes('revisar')) {
-    return 'reopen'
-  }
+  // NOTA: 'reopen' não é mais retornado aqui
+  // Reabertura é determinada pelo status da conversa (PAUSED), não pelo conteúdo das mensagens
   
   if (history.includes('veredito') || history.includes('decisão') || history.includes('fechar')) {
     return 'veredict'

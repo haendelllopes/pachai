@@ -53,11 +53,8 @@ export function detectVeredictSignal(userMessages: string[]): VeredictSignal {
 export function inferConversationState(conversationHistory: string): ConversationState {
   // Por enquanto, implementação simples baseada no tamanho e conteúdo
   // Pode ser melhorada depois com análise mais sofisticada
+  // NOTA: 'reopen' não é mais retornado aqui - reabertura é determinada pelo status da conversa
   const history = conversationHistory.toLowerCase()
-  
-  if (history.includes('mudou') || history.includes('atualizar') || history.includes('revisar')) {
-    return 'reopen'
-  }
   
   if (history.includes('veredito') || history.includes('decisão') || history.includes('fechar')) {
     return 'veredict'
