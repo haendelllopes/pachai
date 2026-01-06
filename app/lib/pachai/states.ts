@@ -22,7 +22,7 @@ export interface Message {
  * Infere o estado atual da conversa como tendência, não como rótulo fixo.
  * Retorna objeto com primary e confidence para lidar com ambiguidade natural.
  */
-export function inferConversationState(
+export function inferConversationStateFromMessages(
   messages: Message[],
   previousVeredicts: Array<{ created_at: string; pain: string; value: string }> = []
 ): StateTendency {
@@ -138,5 +138,35 @@ export function inferConversationState(
     confidence: 0.7,
     secondary: ConversationState.CLAREAMENTO,
   }
+}
+
+/**
+ * Infere o estado da conversa a partir do histórico (string)
+ * Wrapper para compatibilidade com API route
+ */
+export function inferConversationState(conversationHistory: string): 'exploration' | 'clarification' | 'convergence' | 'veredict' | 'pause' | 'reopen' {
+  const history = conversationHistory.toLowerCase()
+  
+  if (history.includes('mudou') || history.includes('atualizar') || history.includes('revisar')) {
+    return 'reopen'
+  }
+  
+  if (history.includes('veredito') || history.includes('decisão') || history.includes('fechar')) {
+    return 'veredict'
+  }
+  
+  if (history.length < 100) {
+    return 'exploration'
+  }
+  
+  if (history.includes('entendi') || history.includes('resumir') || history.includes('conclusão')) {
+    return 'convergence'
+  }
+  
+  if (history.includes('dor') || history.includes('problema') || history.includes('incomoda')) {
+    return 'clarification'
+  }
+  
+  return 'exploration'
 }
 

@@ -58,7 +58,7 @@ export function detectVeredictSignal(userMessages: string[]): VeredictSignal {
  * Infere o estado da conversa a partir do histórico (string)
  * Converte para o formato esperado pelo sistema de prompts
  */
-function inferConversationState(conversationHistory: string): ConversationState {
+export function inferConversationState(conversationHistory: string): ConversationState {
   // Por enquanto, implementação simples baseada no tamanho e conteúdo
   // Pode ser melhorada depois com análise mais sofisticada
   const history = conversationHistory.toLowerCase()
