@@ -2,6 +2,7 @@ interface MessageBubbleProps {
   role: 'user' | 'pachai'
   content: string
   isFirst?: boolean
+  previousMessage?: { role: 'user' | 'pachai' } | null
 }
 
 // Heurística simples apenas para espaçamento visual
@@ -13,14 +14,17 @@ function isImportantMessage(content: string): boolean {
   return longMessage || hasQuestion || hasSummaryKeywords
 }
 
-export default function MessageBubble({ role, content, isFirst = false }: MessageBubbleProps) {
+export default function MessageBubble({ role, content, isFirst = false, previousMessage = null }: MessageBubbleProps) {
   const isUser = role === 'pachai' ? false : true
   const isImportant = !isUser && isImportantMessage(content)
   
   // Calcular marginBottom dinamicamente (apenas visual)
-  const marginBottom = isImportant ? '48px' : '28px'
-  // Primeira mensagem não precisa de margin-top
-  const marginTop = isFirst ? '0' : '24px'
+  // Mensagens do usuário têm espaçamento extra após elas
+  const marginBottom = isUser ? '32px' : (isImportant ? '48px' : '28px')
+  
+  // Detectar mensagens consecutivas do Pachai para reforçar turnos
+  const needsExtraSpace = !isUser && previousMessage?.role === 'pachai'
+  const marginTop = isFirst ? '0' : needsExtraSpace ? '40px' : '24px'
 
   return (
     <div
@@ -34,8 +38,8 @@ export default function MessageBubble({ role, content, isFirst = false }: Messag
         padding: 0,
         background: 'transparent',
         color: 'var(--text-main)',
-        opacity: isUser ? 0.75 : 1,
-        fontSize: '1rem',
+        opacity: isUser ? 0.68 : 1,
+        fontSize: isUser ? '0.9375rem' : '1rem',
         fontWeight: isUser ? 300 : 400,
         lineHeight: 1.6,
         whiteSpace: 'pre-wrap',

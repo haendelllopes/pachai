@@ -107,8 +107,9 @@ export default function ConversationPage() {
     }}>
       <div style={{
         borderBottom: '1px solid var(--border-soft)',
-        padding: '1rem 1.5rem',
-        background: 'var(--bg-main)',
+        padding: '1rem 1.5rem 1.75rem',
+        background: 'var(--bg-soft)',
+        opacity: 0.85,
       }}>
         <h1 style={{
           fontSize: '1.25rem',
@@ -117,6 +118,7 @@ export default function ConversationPage() {
           marginBottom: '0.25rem',
           color: 'var(--text-main)',
           letterSpacing: '-0.01em',
+          opacity: 0.9,
         }}>
           {productName || `Produto ${productId}`}
         </h1>
@@ -125,6 +127,7 @@ export default function ConversationPage() {
           color: 'var(--text-soft)',
           fontWeight: 300,
           margin: 0,
+          opacity: 0.75,
         }}>
           Um espaço de escuta contínua
         </p>

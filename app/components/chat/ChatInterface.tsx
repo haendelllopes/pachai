@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import MessageBubble from './MessageBubble'
+import ErrorMessage from './ErrorMessage'
 import VeredictForm from './VeredictForm'
 import { createClient } from '@/app/lib/supabase/client'
 
@@ -11,6 +12,7 @@ interface Message {
   role: 'user' | 'pachai'
   content: string
   created_at: string
+  isError?: boolean
 }
 
 interface ChatInterfaceProps {
@@ -160,12 +162,13 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       }
     } catch (error) {
       console.error('Error generating Pachai response:', error)
-      // Mostrar mensagem de erro ao usuário
+      // Mostrar mensagem de erro ao usuário com linguagem humana e contextual
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'pachai',
-        content: 'Desculpe, não consegui processar sua mensagem agora. Pode tentar novamente?',
+        content: 'Houve uma interrupção técnica agora. Quando quiser, pode escrever novamente.',
         created_at: new Date().toISOString(),
+        isError: true,
       }
       setMessages(prev => [...prev, errorMessage])
     }
@@ -236,7 +239,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '2rem 1.5rem',
+            padding: '2.5rem 1.5rem 2rem',
             background: 'var(--bg-main)',
           }}
         >
@@ -299,14 +302,29 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
             </div>
           ) : (
             <div>
-              {messages.map((message, index) => (
-                <MessageBubble
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  isFirst={index === 0}
-                />
-              ))}
+              {messages.map((message, index) => {
+                // Se for mensagem de erro, usar componente separado
+                if (message.isError) {
+                  return (
+                    <ErrorMessage
+                      key={message.id}
+                      content={message.content}
+                    />
+                  )
+                }
+                
+                // Passar mensagem anterior para detectar mensagens consecutivas do Pachai
+                const previousMessage = index > 0 ? messages[index - 1] : null
+                return (
+                  <MessageBubble
+                    key={message.id}
+                    role={message.role}
+                    content={message.content}
+                    isFirst={index === 0}
+                    previousMessage={previousMessage && !previousMessage.isError ? previousMessage : null}
+                  />
+                )
+              })}
               {loading && (
                 <div
                   style={{
