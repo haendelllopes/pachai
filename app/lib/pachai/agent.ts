@@ -6,52 +6,44 @@ export interface Message {
   content: string
 }
 
-interface VeredictSignal {
-  detected: boolean
-  suggestedTitle?: string
+export type VeredictSignal = {
+  suspected: boolean
+  reason?: string
 }
 
 /**
  * Detecta sinais explícitos de veredito nas mensagens do usuário
+ * Determinístico e rápido - não usa LLM
  */
 export function detectVeredictSignal(userMessages: string[]): VeredictSignal {
-  const lastMessage = userMessages[userMessages.length - 1]?.toLowerCase() || ''
-  
   const signals = [
-    'é isso',
-    'chegamos em um veredito',
+    'acho que chegamos',
+    'isso ficou claro',
     'vamos fechar assim',
-    'faz sentido registrar isso',
-    'podemos registrar',
-    'vamos registrar',
-    'chegamos a uma conclusão',
-    'fechado',
+    'pra mim está decidido',
+    'faz sentido fechar',
+    'acho que é isso',
+    'podemos concluir'
   ]
 
-  const hasSignal = signals.some(signal => lastMessage.includes(signal))
+  const lastMessage = userMessages[userMessages.length - 1]?.toLowerCase()
 
-  if (!hasSignal) {
-    return { detected: false }
+  if (!lastMessage) {
+    return { suspected: false }
   }
 
-  // Tentar extrair contexto para sugerir título
-  // Em V1, usamos uma abordagem simples: pegar palavras-chave das últimas mensagens
-  const recentMessages = userMessages.slice(-3).join(' ')
-  const words = recentMessages
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 3)
-    .slice(0, 5)
-  
-  const suggestedTitle = words.length > 0 
-    ? `Decisão sobre ${words.slice(0, 3).join(' ')}`
-    : 'Decisão de produto'
+  const matched = signals.find(signal =>
+    lastMessage.includes(signal)
+  )
 
-  return {
-    detected: true,
-    suggestedTitle,
+  if (matched) {
+    return {
+      suspected: true,
+      reason: matched
+    }
   }
+
+  return { suspected: false }
 }
 
 /**

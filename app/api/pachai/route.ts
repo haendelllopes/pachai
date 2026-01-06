@@ -1,60 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { getPromptForState, ConversationState } from '@/app/lib/pachai/prompts'
-import { inferConversationState } from '@/app/lib/pachai/states'
+import { detectVeredictSignal } from '@/app/lib/pachai/agent'
+import { getPachaiResponse } from '@/app/lib/pachai/runtime'
+import { getConversationMessages, saveMessage } from '@/app/lib/pachai/db'
 
 export async function POST(req: NextRequest) {
   try {
-    const { conversationHistory, userMessage } = await req.json()
+    const { conversationId, userMessage } = await req.json()
 
-    if (!userMessage) {
+    if (!conversationId || !userMessage) {
       return NextResponse.json(
-        { error: 'userMessage is required' },
+        { error: 'conversationId and userMessage are required' },
         { status: 400 }
       )
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      )
-    }
+    // 1. Buscar histórico da conversa
+    const messages = await getConversationMessages(conversationId)
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    // 2. Salvar mensagem do usuário
+    await saveMessage({
+      conversationId,
+      role: 'user',
+      content: userMessage
     })
 
-    const state = inferConversationState(conversationHistory || '') as ConversationState
-    const systemPrompt = getPromptForState(state)
+    // 3. Detectar possível veredito
+    const userMessages = messages
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: userMessage,
-        },
-      ],
-      temperature: 0.4,
-      max_tokens: 400,
+    const veredictSignal = detectVeredictSignal(userMessages)
+
+    // 4. Se houver suspeita, mudar o modo de resposta
+    const mode = veredictSignal.suspected
+      ? 'VEREDICT_CONFIRMATION'
+      : 'NORMAL'
+
+    // 5. Gerar resposta do Pachai
+    const pachaiResponse = await getPachaiResponse({
+      conversationId,
+      userMessage,
+      mode
     })
 
-    const reply = completion.choices[0]?.message?.content?.trim() || ''
+    // 6. Salvar resposta do Pachai
+    await saveMessage({
+      conversationId,
+      role: 'pachai',
+      content: pachaiResponse
+    })
 
-    if (!reply) {
-      return NextResponse.json(
-        { error: 'No response generated' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ reply })
+    return NextResponse.json({ message: pachaiResponse })
   } catch (error) {
+    console.error('Error in Pachai API:', error)
+    
+    if (error instanceof Error) {
+      if (error.message === 'Unauthorized') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      if (error.message === 'Forbidden') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      if (error.message === 'Conversation not found') {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      }
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

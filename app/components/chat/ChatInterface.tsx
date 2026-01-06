@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import MessageBubble from './MessageBubble'
 import VeredictForm from './VeredictForm'
-import { detectVeredictSignal } from '@/app/lib/pachai/agent'
 import { createClient } from '@/app/lib/supabase/client'
 
 interface Message {
@@ -121,36 +120,16 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
     setMessages(prev => [...prev, userMessage])
 
-    // Check for veredict signal
-    const allUserMessages = [...messages.filter(m => m.role === 'user'), userMessage]
-      .map(m => m.content)
-    const verdictSignal = detectVeredictSignal(allUserMessages)
-
-    if (verdictSignal.detected && verdictSignal.suggestedTitle) {
-      setSuggestedTitle(verdictSignal.suggestedTitle)
-      setShowVeredictForm(true)
-      setLoading(false)
-      requestAnimationFrame(() => {
-        inputRef.current?.focus()
-      })
-      return
-    }
-
     // Generate Pachai response using API
     try {
-      // Construir histórico da conversa como string
-      const conversationHistory = messages
-        .map(m => `${m.role === 'user' ? 'Usuário' : 'Pachai'}: ${m.content}`)
-        .join('\n')
-
-      // Chamar API route
+      // Chamar API route (a detecção de veredito é feita no servidor)
       const response = await fetch('/api/pachai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          conversationHistory,
+          conversationId,
           userMessage: userContent,
         }),
       })
@@ -161,43 +140,22 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       }
 
       const data = await response.json()
-      const pachaiContent = data.reply
+      const pachaiContent = data.message
 
       if (!pachaiContent) {
         throw new Error('Empty response from Pachai')
       }
 
-      // Save Pachai message
-      const { data: pachaiMessage, error: pachaiError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          role: 'pachai',
-          content: pachaiContent,
-        })
-        .select()
-        .single()
-
-      if (pachaiError) {
-        console.error('Error saving pachai message:', pachaiError)
-        throw pachaiError
-      }
-
-      setMessages(prev => [...prev, pachaiMessage])
+      // A mensagem já foi salva pela API route, buscar atualizada
+      await fetchMessages()
       
-      // Check if Pachai response is asking for title confirmation
-      // A API também pode retornar sinal de veredito na resposta
-      if (pachaiContent.includes('Posso registrar esta conversa como:') || 
-          pachaiContent.includes('veredito para você') ||
-          pachaiContent.includes('registrar isso como')) {
-        const titleMatch = pachaiContent.match(/"([^"]+)"/)
-        if (titleMatch) {
-          setSuggestedTitle(titleMatch[1])
-          setShowVeredictForm(true)
-        } else if (verdictSignal.suggestedTitle) {
-          setSuggestedTitle(verdictSignal.suggestedTitle)
-          setShowVeredictForm(true)
-        }
+      // Check if Pachai response is asking about veredict confirmation
+      // O prompt de confirmação pode indicar que há suspeita de veredito
+      if (pachaiContent.includes('veredito para você') ||
+          pachaiContent.includes('ainda está em aberto') ||
+          pachaiContent.includes('representa um veredito')) {
+        // Não mostrar formulário automaticamente - aguardar resposta do usuário
+        // O formulário será mostrado quando o usuário confirmar explicitamente
       }
     } catch (error) {
       console.error('Error generating Pachai response:', error)
