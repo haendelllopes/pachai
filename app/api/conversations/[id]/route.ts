@@ -1,23 +1,20 @@
-import { createClient } from '@/app/lib/supabase/server'
+import { createClientFromRequest } from '@/app/lib/supabase/server-api'
 import { NextResponse } from 'next/server'
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const supabase = await createClient()
+  // Criar cliente Supabase usando cookies diretamente da requisição
+  const supabase = createClientFromRequest(request)
   
-  // Primeiro tentar getSession para atualizar tokens se necessário
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-  
-  // Depois tentar getUser para obter o usuário
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('Auth errors:', { sessionError, userError })
+    console.error('Auth error in PATCH /api/conversations/[id]:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -63,12 +60,16 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const supabase = await createClient()
+  // Criar cliente Supabase usando cookies diretamente da requisição
+  const supabase = createClientFromRequest(request)
+  
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.error('Auth error in DELETE /api/conversations/[id]:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
