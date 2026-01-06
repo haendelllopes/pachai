@@ -170,6 +170,7 @@ export default function ProductsSidebar() {
     try {
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       if (response.ok) {
         await fetchProducts()
@@ -187,6 +188,7 @@ export default function ProductsSidebar() {
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       if (response.ok) {
         await fetchConversations(productId)
@@ -246,52 +248,113 @@ export default function ProductsSidebar() {
         if (isInConversation) {
           e.currentTarget.style.opacity = '0.9'
         }
+        // Quando recolhida, mostrar affordance visual clara
+        if (collapsed) {
+          e.currentTarget.style.opacity = '1'
+        }
       }}
       onMouseLeave={(e) => {
         if (isInConversation) {
           e.currentTarget.style.opacity = '0.6'
         }
+        // Quando recolhida, voltar opacidade normal
+        if (collapsed) {
+          e.currentTarget.style.opacity = '1'
+        }
       }}
     >
-      {/* Ícone do Pachai no topo */}
+      {/* Topo: Ícone do Pachai + Botão Expandir/Recolher */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start',
+        justifyContent: collapsed ? 'center' : 'space-between',
         marginBottom: collapsed ? '24px' : '16px',
-        cursor: 'pointer',
-      }}
-      onClick={() => setCollapsed(!collapsed)}
-      >
-        <Image
-          src="/image/hero-icon.jpeg"
-          alt="Pachai"
-          width={collapsed ? 32 : 24}
-          height={collapsed ? 32 : 24}
-          style={{
-            width: collapsed ? '32px' : '24px',
-            height: collapsed ? '32px' : '24px',
-            opacity: 0.85,
-          }}
-        />
-        {collapsed && (
-          <div
-            className="sidebar--hover-expand"
+        gap: '8px',
+      }}>
+        {/* Ícone do Pachai (apenas visual) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+        }}>
+          <Image
+            src="/image/hero-icon.jpeg"
+            alt="Pachai"
+            width={collapsed ? 32 : 24}
+            height={collapsed ? 32 : 24}
             style={{
-              position: 'absolute',
-              left: '68px',
-              top: '16px',
-              fontSize: '1.25rem',
-              color: 'var(--text-main)',
-              opacity: 0.6,
-              pointerEvents: 'none',
-              transition: 'opacity 0.2s',
+              width: collapsed ? '32px' : '24px',
+              height: collapsed ? '32px' : '24px',
+              opacity: 0.85,
             }}
-          >
-            ›
-          </div>
-        )}
+          />
+        </div>
+
+        {/* Botão Explícito de Expandir/Recolher */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{
+            padding: collapsed ? '8px' : '4px 8px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: collapsed ? '1.25rem' : '0.875rem',
+            color: 'var(--text-main)',
+            opacity: 0.7,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            transition: 'all 0.2s',
+            minWidth: collapsed ? '32px' : 'auto',
+            minHeight: collapsed ? '32px' : 'auto',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1'
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.7'
+            e.currentTarget.style.background = 'transparent'
+          }}
+          title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+        >
+          {collapsed ? '▶' : '◀'}
+        </button>
       </div>
+
+      {/* Botão "+ Novo projeto" - logo acima de PROJETOS */}
+      {!collapsed && (
+        <Link
+          href="/products/new"
+          className="create-project"
+          style={{
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.9rem',
+            color: 'var(--text-main)',
+            opacity: 0.65,
+            cursor: 'pointer',
+            padding: '6px 4px',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1'
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.65'
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
+          <span>Novo projeto</span>
+        </Link>
+      )}
 
       {/* Título discreto - escondido quando colapsado */}
       {!collapsed && (
@@ -368,6 +431,7 @@ export default function ProductsSidebar() {
                               const response = await fetch(`/api/products/${product.id}`, {
                                 method: 'PATCH',
                                 headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
                                 body: JSON.stringify({ name: newName }),
                               })
                               if (response.ok) {
@@ -503,6 +567,7 @@ export default function ProductsSidebar() {
                                       const response = await fetch(`/api/conversations/${conversation.id}`, {
                                         method: 'PATCH',
                                         headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
                                         body: JSON.stringify({ title: newTitle }),
                                       })
                                       if (response.ok) {
@@ -607,39 +672,6 @@ export default function ProductsSidebar() {
           </div>
         )}
       </nav>
-
-      {/* Ação de criação - movida para zona inferior */}
-      {!collapsed && (
-        <Link
-          href="/products/new"
-          className="create-project"
-          style={{
-            marginTop: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.9rem',
-            color: 'var(--text-main)',
-            opacity: 0.65,
-            cursor: 'pointer',
-            padding: '6px 4px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1'
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0.65'
-            e.currentTarget.style.background = 'transparent'
-          }}
-        >
-          <span style={{ fontSize: '1rem', lineHeight: 1 }}>+</span>
-          <span>Novo projeto</span>
-        </Link>
-      )}
 
       {/* Separador invisível */}
       <div style={{ flexGrow: 1 }} />
@@ -798,10 +830,16 @@ export default function ProductsSidebar() {
               {
                 label: contextMenu.type === 'product' ? 'Excluir projeto' : 'Excluir conversa',
                 onClick: () => {
+                  // Capturar valores antes que o menu seja fechado pelo ContextMenu
+                  const menuType = contextMenu.type
+                  const menuId = contextMenu.id
+                  const menuName = contextMenu.name
+                  
+                  // Definir deleteModal imediatamente antes que o ContextMenu feche
                   setDeleteModal({
-                    type: contextMenu.type,
-                    id: contextMenu.id,
-                    name: contextMenu.name,
+                    type: menuType === 'product' ? 'product' : 'conversation',
+                    id: menuId,
+                    name: menuName,
                   })
                 },
                 danger: true,

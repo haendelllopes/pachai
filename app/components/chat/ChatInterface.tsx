@@ -131,6 +131,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           conversationId,
           userMessage: userContent,
@@ -177,6 +178,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
                 headers: {
                   'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                   conversationId,
                   messages: currentMessages,
