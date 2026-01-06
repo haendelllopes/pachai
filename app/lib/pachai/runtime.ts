@@ -2,7 +2,7 @@ import { BASE_PACHAI_PROMPT } from './prompts/base'
 import { VEREDICT_CONFIRMATION_PROMPT } from './prompts/veredict'
 import { REOPEN_PROMPT } from './prompts/reopen'
 import { getPromptForState, ConversationState } from './prompts'
-import { inferConversationState } from './states'
+import { inferConversationStateFromMessages, VeredictSignal, ConversationStatus } from './states'
 import { getConversationMessages, getConversation } from './db'
 import { getPreviousVeredicts } from './agent'
 import { getConversationSummary } from './reopen'
@@ -16,6 +16,7 @@ type PachaiRuntimeInput = {
   conversationId: string
   userMessage: string
   mode: PachaiMode
+  veredictSignal?: VeredictSignal
 }
 
 /**
@@ -81,7 +82,8 @@ async function callOpenAI(params: {
 export async function getPachaiResponse({
   conversationId,
   userMessage,
-  mode
+  mode,
+  veredictSignal
 }: PachaiRuntimeInput): Promise<string> {
   // 1. Buscar informações da conversa (incluindo status)
   const conversation = await getConversation(conversationId)
@@ -150,14 +152,26 @@ ${VEREDICT_CONFIRMATION_PROMPT}
   } else {
     // Modo NORMAL com conversa ACTIVE: usar sistema de prompts por estado
     // NUNCA usar prompt de reabertura quando status === 'ACTIVE'
-    const conversationHistory = history
-      .map(m => `${m.role === 'user' ? 'Usuário' : 'Pachai'}: ${m.content}`)
-      .join('\n')
-
-    const state = inferConversationState(conversationHistory || '') as ConversationState
     
-    // Garantir que nunca retorne 'reopen' quando status é ACTIVE
-    const finalState = state === 'reopen' ? 'exploration' : state
+    // Inferir estado usando função melhorada com histórico completo
+    // REGRA INVOLÁVEL 1: Passar conversation.status para garantir que não infere reabertura incorretamente
+    const inferredState = inferConversationStateFromMessages(
+      history,
+      conversation.status as ConversationStatus,
+      veredictSignal
+    )
+    
+    // Converter enum para string compatível com prompts.ts
+    const stateMap: Record<string, 'exploration' | 'clarification' | 'convergence' | 'veredict_check' | 'pause'> = {
+      'EXPLORATION': 'exploration',
+      'CLARIFICATION': 'clarification',
+      'CONVERGENCE': 'convergence',
+      'VEREDICT_CHECK': 'veredict_check',
+      'PAUSED': 'pause'
+    }
+    
+    const stateString = stateMap[inferredState] || 'exploration'
+    const finalState = stateString as ConversationState
     
     const statePrompt = getPromptForState(finalState)
     systemPrompt = statePrompt

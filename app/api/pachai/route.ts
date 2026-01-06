@@ -59,10 +59,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Gerar resposta do Pachai
+    // REGRA INVOLÁVEL 3: detectVeredictSignal apenas sugere, nunca força
+    // Passar veredictSignal para inferência, mas modo VEREDICT_CONFIRMATION tem prioridade
     const pachaiResponse = await getPachaiResponse({
       conversationId,
       userMessage,
-      mode
+      mode,
+      veredictSignal: mode === 'NORMAL' ? veredictSignal : undefined // Passar apenas em modo NORMAL
     })
 
     // 9. Se estava em modo REOPENING, marcar conversa como reaberta
