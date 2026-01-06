@@ -136,34 +136,56 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       return
     }
 
-    // Generate Pachai response
-    const allMessages = [...messages, userMessage]
-    const pachaiContent = generatePachaiResponse(allMessages)
+    // Generate Pachai response using API
+    try {
+      const pachaiContent = await generatePachaiResponse(conversationId, userContent)
 
-    // Save Pachai message
-    const { data: pachaiMessage, error: pachaiError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role: 'pachai',
-        content: pachaiContent,
-      })
-      .select()
-      .single()
+      if (!pachaiContent) {
+        throw new Error('Empty response from Pachai')
+      }
 
-    if (pachaiError) {
-      console.error('Error saving pachai message:', pachaiError)
-    } else {
+      // Save Pachai message
+      const { data: pachaiMessage, error: pachaiError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'pachai',
+          content: pachaiContent,
+        })
+        .select()
+        .single()
+
+      if (pachaiError) {
+        console.error('Error saving pachai message:', pachaiError)
+        throw pachaiError
+      }
+
       setMessages(prev => [...prev, pachaiMessage])
       
       // Check if Pachai response is asking for title confirmation
-      if (pachaiContent.includes('Posso registrar esta conversa como:')) {
+      // A API também pode retornar sinal de veredito na resposta
+      if (pachaiContent.includes('Posso registrar esta conversa como:') || 
+          pachaiContent.includes('veredito para você') ||
+          pachaiContent.includes('registrar isso como')) {
         const titleMatch = pachaiContent.match(/"([^"]+)"/)
         if (titleMatch) {
           setSuggestedTitle(titleMatch[1])
           setShowVeredictForm(true)
+        } else if (verdictSignal.suggestedTitle) {
+          setSuggestedTitle(verdictSignal.suggestedTitle)
+          setShowVeredictForm(true)
         }
       }
+    } catch (error) {
+      console.error('Error generating Pachai response:', error)
+      // Mostrar mensagem de erro ao usuário
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'pachai',
+        content: 'Desculpe, não consegui processar sua mensagem agora. Pode tentar novamente?',
+        created_at: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
     }
 
     setLoading(false)
@@ -398,4 +420,5 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     </>
   )
 }
+
 
