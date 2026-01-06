@@ -5,11 +5,12 @@ import { getPromptForState, ConversationState } from './prompts'
 import { inferConversationState } from './states'
 import { getConversationMessages, getConversation } from './db'
 import { getPreviousVeredicts } from './agent'
+import { getConversationSummary } from './reopen'
 import { Message } from './agent'
 import OpenAI from 'openai'
 import { createClient } from '@/app/lib/supabase/server'
 
-export type PachaiMode = 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE'
+export type PachaiMode = 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' | 'REOPENING'
 
 type PachaiRuntimeInput = {
   conversationId: string
@@ -98,24 +99,25 @@ export async function getPachaiResponse({
     systemPrompt = getPromptForState('pause')
     // Limitar histórico a apenas últimas 2-3 mensagens para contexto mínimo
     maxHistoryMessages = 3
-  } else if (mode === 'VEREDICT_CONFIRMATION') {
-    // Modo de confirmação de veredito
-    systemPrompt = `
-${BASE_PACHAI_PROMPT}
-
-${VEREDICT_CONFIRMATION_PROMPT}
-`
-    // Limitar histórico mesmo em modo de veredito
-    maxHistoryMessages = 8
-  } else if (conversation.status === 'PAUSED') {
-    // Conversa pausada sendo retomada - usar prompt de reabertura
+  } else if (mode === 'REOPENING') {
+    // Modo de reabertura: conversa pausada sendo retomada
+    // Este modo ativa por apenas UMA resposta
     const supabase = await createClient()
     const previousVeredicts = await getPreviousVeredicts(conversation.product_id, supabase)
+    
+    // Obter resumo do tema da conversa
+    const conversationSummary = getConversationSummary(history)
 
     systemPrompt = `
 ${BASE_PACHAI_PROMPT}
 
 ${REOPEN_PROMPT}
+
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Tema da Conversa Anterior
+━━━━━━━━━━━━━━━━━━
+
+${conversationSummary}
 `
 
     // Se há veredito anterior, adicionar contexto
@@ -131,13 +133,20 @@ Na última conversa, foi registrado:
 
 Dor: ${lastVeredict.pain}
 Valor: ${lastVeredict.value}
-
-O usuário está retomando essa conversa. Pergunte o que mudou desde então.
 `
     }
 
-    // Limitar histórico para reabertura (apenas últimas 3-4 mensagens para contexto)
-    maxHistoryMessages = 4
+    // Limitar histórico para reabertura (apenas últimas 4-5 mensagens para contexto mínimo)
+    maxHistoryMessages = 5
+  } else if (mode === 'VEREDICT_CONFIRMATION') {
+    // Modo de confirmação de veredito
+    systemPrompt = `
+${BASE_PACHAI_PROMPT}
+
+${VEREDICT_CONFIRMATION_PROMPT}
+`
+    // Limitar histórico mesmo em modo de veredito
+    maxHistoryMessages = 8
   } else {
     // Modo NORMAL com conversa ACTIVE: usar sistema de prompts por estado
     // NUNCA usar prompt de reabertura quando status === 'ACTIVE'

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { detectVeredictSignal } from '@/app/lib/pachai/agent'
 import { getPachaiResponse } from '@/app/lib/pachai/runtime'
-import { getConversationMessages, saveMessage, pauseConversation } from '@/app/lib/pachai/db'
+import { getConversationMessages, saveMessage, pauseConversation, getConversation, markConversationReopened } from '@/app/lib/pachai/db'
 import { shouldPauseConversation } from '@/app/lib/pachai/pause'
 
 export async function POST(req: NextRequest) {
@@ -15,25 +15,31 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 1. Buscar histórico da conversa
+    // 1. Buscar informações da conversa ANTES de salvar mensagem (para verificar status)
+    const conversation = await getConversation(conversationId)
+    const isReopening = conversation.status === 'PAUSED'
+
+    // 2. Buscar histórico da conversa
     const messages = await getConversationMessages(conversationId)
 
-    // 2. Salvar mensagem do usuário
+    // 3. Salvar mensagem do usuário
+    // Se está em modo REOPENING, não atualizar status ainda (será atualizado após resposta)
     await saveMessage({
       conversationId,
       role: 'user',
-      content: userMessage
+      content: userMessage,
+      skipStatusUpdate: isReopening
     })
 
-    // 3. Verificar se usuário pediu para pausar a conversa
+    // 4. Verificar se usuário pediu para pausar a conversa
     const shouldPause = shouldPauseConversation(userMessage)
 
-    // 4. Se usuário pediu para pausar, atualizar status da conversa
+    // 5. Se usuário pediu para pausar, atualizar status da conversa
     if (shouldPause) {
       await pauseConversation(conversationId)
     }
 
-    // 5. Detectar possível veredito (incluindo mensagem atual)
+    // 6. Detectar possível veredito (incluindo mensagem atual)
     const userMessages = [
       ...messages.filter(m => m.role === 'user').map(m => m.content),
       userMessage
@@ -41,23 +47,30 @@ export async function POST(req: NextRequest) {
 
     const veredictSignal = detectVeredictSignal(userMessages)
 
-    // 6. Determinar modo de resposta
-    // Prioridade: PAUSE > VEREDICT_CONFIRMATION > NORMAL
-    let mode: 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' = 'NORMAL'
+    // 7. Determinar modo de resposta
+    // Prioridade: PAUSE > REOPENING > VEREDICT_CONFIRMATION > NORMAL
+    let mode: 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' | 'REOPENING' = 'NORMAL'
     if (shouldPause) {
       mode = 'PAUSE'
+    } else if (isReopening) {
+      mode = 'REOPENING'
     } else if (veredictSignal.suspected) {
       mode = 'VEREDICT_CONFIRMATION'
     }
 
-    // 7. Gerar resposta do Pachai
+    // 8. Gerar resposta do Pachai
     const pachaiResponse = await getPachaiResponse({
       conversationId,
       userMessage,
       mode
     })
 
-    // 8. Salvar resposta do Pachai
+    // 9. Se estava em modo REOPENING, marcar conversa como reaberta
+    if (mode === 'REOPENING') {
+      await markConversationReopened(conversationId)
+    }
+
+    // 10. Salvar resposta do Pachai
     await saveMessage({
       conversationId,
       role: 'pachai',
