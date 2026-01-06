@@ -15,8 +15,16 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          // Atualizar cookies na requisição E na resposta
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
+            response.cookies.set(name, value, options)
+          })
+          // Recriar response para garantir que os cookies atualizados sejam propagados
+          response = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options)
           })
         },
@@ -25,7 +33,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // Sempre atualizar sessão (mantém cookies frescos)
-  // Isso atualiza automaticamente os cookies de autenticação na resposta
+  // Isso atualiza automaticamente os cookies de autenticação
   await supabase.auth.getSession()
 
   return response

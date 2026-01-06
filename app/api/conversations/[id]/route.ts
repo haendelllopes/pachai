@@ -1,12 +1,12 @@
 import { createClientFromRequest } from '@/app/lib/supabase/server-api'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase usando cookies diretamente da requisição
-  const supabase = createClientFromRequest(request)
+  // Criar cliente Supabase - cookies() já está sincronizado com middleware
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -57,11 +57,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase usando cookies diretamente da requisição
-  const supabase = createClientFromRequest(request)
+  // Criar cliente Supabase - cookies() já está sincronizado com middleware
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
