@@ -11,8 +11,8 @@ export const metadata: Metadata = {
     title: 'Pachai',
   },
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/icon-192x192.png',
+    icon: '/image/favicon.jpeg',
+    apple: '/image/favicon.jpeg',
   },
 }
 
@@ -32,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
+        <link rel="icon" href="/image/favicon.jpeg" type="image/jpeg" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
