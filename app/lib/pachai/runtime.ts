@@ -2,7 +2,7 @@ import { BASE_PACHAI_PROMPT } from './prompts/base'
 import { VEREDICT_CONFIRMATION_PROMPT } from './prompts/veredict'
 import { REOPEN_PROMPT } from './prompts/reopen'
 import { getPromptForState, ConversationState } from './prompts'
-import { inferConversationStateFromMessages, VeredictSignal, ConversationStatus } from './states'
+import { inferConversationStateFromMessages, VeredictSignal, ConversationStatus, ConversationState as StateEnum } from './states'
 import { getConversationMessages, getConversation } from './db'
 import { getPreviousVeredicts } from './agent'
 import { getConversationSummary } from './reopen'
@@ -10,13 +10,116 @@ import { Message } from './agent'
 import OpenAI from 'openai'
 import { createClient } from '@/app/lib/supabase/server'
 
-export type PachaiMode = 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' | 'REOPENING'
-
 type PachaiRuntimeInput = {
   conversationId: string
   userMessage: string
-  mode: PachaiMode
+  pauseRequested: boolean
   veredictSignal?: VeredictSignal
+}
+
+/**
+ * Constrói prompt de reabertura com contexto da conversa anterior
+ */
+function buildReopenPrompt(
+  conversationSummary?: string,
+  previousVeredicts?: Array<{ pain: string; value: string }>
+): string {
+  let prompt = `
+${BASE_PACHAI_PROMPT}
+
+${REOPEN_PROMPT}
+`
+
+  if (conversationSummary) {
+    prompt += `
+
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Tema da Conversa Anterior
+━━━━━━━━━━━━━━━━━━
+
+${conversationSummary}
+`
+  }
+
+  if (previousVeredicts && previousVeredicts.length > 0) {
+    const lastVeredict = previousVeredicts[0]
+    prompt += `
+
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Veredito Anterior
+━━━━━━━━━━━━━━━━━━
+
+Na última conversa, foi registrado:
+
+Dor: ${lastVeredict.pain}
+Valor: ${lastVeredict.value}
+`
+  }
+
+  return prompt
+}
+
+/**
+ * Mapeia explicitamente qual prompt usar para cada situação da conversa
+ * 
+ * REGRAS DE PRIORIDADE (em ordem):
+ * 1. conversation.status === 'PAUSED' → REOPEN_PROMPT (prioridade máxima)
+ * 2. pauseRequested === true → PAUSE_CONFIRMATION_PROMPT
+ * 3. inferredState === 'VEREDICT_CHECK' → VEREDICT_CONFIRMATION_PROMPT
+ * 4. Outros estados inferidos → getPromptForState(inferredState)
+ * 5. Fallback → getPromptForState('exploration')
+ */
+function getPromptForConversationState(params: {
+  conversationStatus: ConversationStatus
+  inferredState: StateEnum
+  pauseRequested: boolean
+  conversationSummary?: string
+  previousVeredicts?: Array<{ pain: string; value: string }>
+}): { prompt: string; maxHistoryMessages: number } {
+  // Prioridade 1: Reabertura (status === 'PAUSED')
+  if (params.conversationStatus === 'PAUSED') {
+    return {
+      prompt: buildReopenPrompt(params.conversationSummary, params.previousVeredicts),
+      maxHistoryMessages: 5 // Apenas últimas 4-5 mensagens para contexto mínimo
+    }
+  }
+
+  // Prioridade 2: Pausa explícita (evento do usuário)
+  if (params.pauseRequested) {
+    return {
+      prompt: getPromptForState('pause'),
+      maxHistoryMessages: 3 // Apenas últimas 2-3 mensagens para contexto mínimo
+    }
+  }
+
+  // Prioridade 3: Veredito check
+  if (params.inferredState === StateEnum.VEREDICT_CHECK) {
+    return {
+      prompt: `
+${BASE_PACHAI_PROMPT}
+
+${VEREDICT_CONFIRMATION_PROMPT}
+`,
+      maxHistoryMessages: 8
+    }
+  }
+
+  // Prioridade 4: Outros estados inferidos
+  const stateMap: Record<StateEnum, ConversationState> = {
+    [StateEnum.EXPLORATION]: 'exploration',
+    [StateEnum.CLARIFICATION]: 'clarification',
+    [StateEnum.CONVERGENCE]: 'convergence',
+    [StateEnum.VEREDICT_CHECK]: 'veredict_check', // Não deve chegar aqui, mas fallback seguro
+    [StateEnum.PAUSED]: 'pause' // Não deve chegar aqui, mas fallback seguro
+  }
+
+  const stateString = stateMap[params.inferredState] || 'exploration'
+  
+  // Prioridade 5: Fallback para EXPLORATION
+  return {
+    prompt: getPromptForState(stateString as ConversationState),
+    maxHistoryMessages: 8
+  }
 }
 
 /**
@@ -77,12 +180,19 @@ async function callOpenAI(params: {
 }
 
 /**
- * Gera resposta do Pachai baseado no modo e histórico
+ * Gera resposta do Pachai baseado no estado da conversa
+ * 
+ * Lógica centralizada em getPromptForConversationState() seguindo prioridades:
+ * 1. conversation.status === 'PAUSED' → REOPEN_PROMPT
+ * 2. pauseRequested → PAUSE_CONFIRMATION_PROMPT
+ * 3. inferredState === 'VEREDICT_CHECK' → VEREDICT_CONFIRMATION_PROMPT
+ * 4. Outros estados → getPromptForState()
+ * 5. Fallback → EXPLORATION
  */
 export async function getPachaiResponse({
   conversationId,
   userMessage,
-  mode,
+  pauseRequested,
   veredictSignal
 }: PachaiRuntimeInput): Promise<string> {
   // 1. Buscar informações da conversa (incluindo status)
@@ -91,98 +201,39 @@ export async function getPachaiResponse({
   // 2. Buscar histórico de mensagens
   const history = await getConversationMessages(conversationId)
 
-  let systemPrompt = BASE_PACHAI_PROMPT
-  let messagesToSend = history
-  let maxHistoryMessages = 20
+  // 3. Inferir estado apenas se conversa não estiver pausada
+  // Se estiver pausada, não inferir (reabertura tem prioridade máxima)
+  let inferredState: StateEnum = StateEnum.EXPLORATION
+  let conversationSummary: string | undefined
+  let previousVeredicts: Array<{ pain: string; value: string }> | undefined
 
-  if (mode === 'PAUSE') {
-    // Modo de pausa: usuário pediu explicitamente para pausar
-    // Usar prompt de pause para validar a escolha consciente
-    systemPrompt = getPromptForState('pause')
-    // Limitar histórico a apenas últimas 2-3 mensagens para contexto mínimo
-    maxHistoryMessages = 3
-  } else if (mode === 'REOPENING') {
-    // Modo de reabertura: conversa pausada sendo retomada
-    // Este modo ativa por apenas UMA resposta
+  if (conversation.status === 'PAUSED') {
+    // Buscar contexto para reabertura
     const supabase = await createClient()
-    const previousVeredicts = await getPreviousVeredicts(conversation.product_id, supabase)
-    
-    // Obter resumo do tema da conversa
-    const conversationSummary = getConversationSummary(history)
-
-    systemPrompt = `
-${BASE_PACHAI_PROMPT}
-
-${REOPEN_PROMPT}
-
-━━━━━━━━━━━━━━━━━━
-CONTEXTO: Tema da Conversa Anterior
-━━━━━━━━━━━━━━━━━━
-
-${conversationSummary}
-`
-
-    // Se há veredito anterior, adicionar contexto
-    if (previousVeredicts.length > 0) {
-      const lastVeredict = previousVeredicts[0]
-      systemPrompt += `
-
-━━━━━━━━━━━━━━━━━━
-CONTEXTO: Veredito Anterior
-━━━━━━━━━━━━━━━━━━
-
-Na última conversa, foi registrado:
-
-Dor: ${lastVeredict.pain}
-Valor: ${lastVeredict.value}
-`
-    }
-
-    // Limitar histórico para reabertura (apenas últimas 4-5 mensagens para contexto mínimo)
-    maxHistoryMessages = 5
-  } else if (mode === 'VEREDICT_CONFIRMATION') {
-    // Modo de confirmação de veredito
-    systemPrompt = `
-${BASE_PACHAI_PROMPT}
-
-${VEREDICT_CONFIRMATION_PROMPT}
-`
-    // Limitar histórico mesmo em modo de veredito
-    maxHistoryMessages = 8
+    conversationSummary = getConversationSummary(history)
+    previousVeredicts = await getPreviousVeredicts(conversation.product_id, supabase)
   } else {
-    // Modo NORMAL com conversa ACTIVE: usar sistema de prompts por estado
-    // NUNCA usar prompt de reabertura quando status === 'ACTIVE'
-    
-    // Inferir estado usando função melhorada com histórico completo
-    // REGRA INVOLÁVEL 1: Passar conversation.status para garantir que não infere reabertura incorretamente
-    const inferredState = inferConversationStateFromMessages(
+    // Inferir estado normalmente
+    inferredState = inferConversationStateFromMessages(
       history,
       conversation.status as ConversationStatus,
       veredictSignal
     )
-    
-    // Converter enum para string compatível com prompts.ts
-    const stateMap: Record<string, 'exploration' | 'clarification' | 'convergence' | 'veredict_check' | 'pause'> = {
-      'EXPLORATION': 'exploration',
-      'CLARIFICATION': 'clarification',
-      'CONVERGENCE': 'convergence',
-      'VEREDICT_CHECK': 'veredict_check',
-      'PAUSED': 'pause'
-    }
-    
-    const stateString = stateMap[inferredState] || 'exploration'
-    const finalState = stateString as ConversationState
-    
-    const statePrompt = getPromptForState(finalState)
-    systemPrompt = statePrompt
-    
-    // Limitar histórico a 6-8 mensagens quando ACTIVE
-    maxHistoryMessages = 8
   }
 
+  // 4. Obter prompt usando função centralizada
+  const { prompt: systemPrompt, maxHistoryMessages } = getPromptForConversationState({
+    conversationStatus: conversation.status as ConversationStatus,
+    inferredState,
+    pauseRequested,
+    conversationSummary,
+    previousVeredicts
+  })
+
+  // 5. Gerar resposta
   return callOpenAI({
     systemPrompt,
-    messages: messagesToSend,
+    messages: history,
     userMessage,
     maxHistoryMessages
   })

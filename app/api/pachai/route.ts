@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const messages = await getConversationMessages(conversationId)
 
     // 3. Salvar mensagem do usuário
-    // Se está em modo REOPENING, não atualizar status ainda (será atualizado após resposta)
+    // Se está reabrindo (status === 'PAUSED'), não atualizar status ainda (será atualizado após resposta)
     await saveMessage({
       conversationId,
       role: 'user',
@@ -31,49 +31,43 @@ export async function POST(req: NextRequest) {
       skipStatusUpdate: isReopening
     })
 
-    // 4. Verificar se usuário pediu para pausar a conversa
-    const shouldPause = shouldPauseConversation(userMessage)
+    // 4. Verificar se usuário pediu para pausar a conversa (evento explícito)
+    const pauseRequested = shouldPauseConversation(userMessage)
 
-    // 5. Se usuário pediu para pausar, atualizar status da conversa
-    if (shouldPause) {
-      await pauseConversation(conversationId)
-    }
-
-    // 6. Detectar possível veredito (incluindo mensagem atual)
+    // 5. Detectar possível veredito (incluindo mensagem atual)
+    // REGRA INVOLÁVEL 3: detectVeredictSignal apenas sugere, nunca força
     const userMessages = [
       ...messages.filter(m => m.role === 'user').map(m => m.content),
       userMessage
     ]
-
     const veredictSignal = detectVeredictSignal(userMessages)
 
-    // 7. Determinar modo de resposta
-    // Prioridade: PAUSE > REOPENING > VEREDICT_CONFIRMATION > NORMAL
-    let mode: 'NORMAL' | 'VEREDICT_CONFIRMATION' | 'PAUSE' | 'REOPENING' = 'NORMAL'
-    if (shouldPause) {
-      mode = 'PAUSE'
-    } else if (isReopening) {
-      mode = 'REOPENING'
-    } else if (veredictSignal.suspected) {
-      mode = 'VEREDICT_CONFIRMATION'
-    }
-
-    // 8. Gerar resposta do Pachai
-    // REGRA INVOLÁVEL 3: detectVeredictSignal apenas sugere, nunca força
-    // Passar veredictSignal para inferência, mas modo VEREDICT_CONFIRMATION tem prioridade
+    // 6. Gerar resposta do Pachai usando função centralizada
+    // A função getPromptForConversationState() aplica prioridades automaticamente:
+    // 1) status === 'PAUSED' → REOPEN_PROMPT
+    // 2) pauseRequested → PAUSE_CONFIRMATION_PROMPT
+    // 3) inferredState === 'VEREDICT_CHECK' → VEREDICT_CONFIRMATION_PROMPT
+    // 4) outros estados → getPromptForState()
     const pachaiResponse = await getPachaiResponse({
       conversationId,
       userMessage,
-      mode,
-      veredictSignal: mode === 'NORMAL' ? veredictSignal : undefined // Passar apenas em modo NORMAL
+      pauseRequested,
+      veredictSignal
     })
 
-    // 9. Se estava em modo REOPENING, marcar conversa como reaberta
-    if (mode === 'REOPENING') {
+    // 7. Se estava reabrindo (status === 'PAUSED'), marcar conversa como reaberta
+    // Após primeira resposta em modo reabertura, status volta para ACTIVE
+    if (isReopening) {
       await markConversationReopened(conversationId)
     }
 
-    // 10. Salvar resposta do Pachai
+    // 8. Se usuário pediu para pausar, atualizar status para PAUSED após resposta
+    // PAUSE é um evento explícito: gerar uma resposta de confirmação e pausar
+    if (pauseRequested) {
+      await pauseConversation(conversationId)
+    }
+
+    // 9. Salvar resposta do Pachai
     await saveMessage({
       conversationId,
       role: 'pachai',
