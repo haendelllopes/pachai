@@ -113,7 +113,7 @@ export default function LandingPage() {
       </section>
 
       {/* Divisor Visual */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '2.5rem auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '1.5rem auto' }}>
         <Image
           src="/image/divisor-icon.jpeg"
           alt=""
@@ -137,7 +137,7 @@ export default function LandingPage() {
         style={{
           maxWidth: '640px',
           margin: '0 auto',
-          padding: '0 1.5rem 3rem',
+          padding: '0 1.5rem 1.5rem',
         }}
         aria-label="Como funciona"
       >
