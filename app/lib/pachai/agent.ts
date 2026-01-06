@@ -1,3 +1,6 @@
+import { getPromptForState, ConversationState } from './prompts';
+import { inferConversationState as inferStateFromMessages } from './states';
+
 export interface Message {
   role: 'user' | 'pachai'
   content: string
@@ -52,36 +55,52 @@ export function detectVeredictSignal(userMessages: string[]): VeredictSignal {
 }
 
 /**
- * Gera resposta do Pachai usando a API route
+ * Infere o estado da conversa a partir do histórico (string)
+ * Converte para o formato esperado pelo sistema de prompts
  */
-export async function generatePachaiResponse(
-  conversationId: string,
-  userMessage: string
-): Promise<string> {
-  try {
-    const response = await fetch('/api/pachai', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        conversationId,
-        userMessage,
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to generate response')
-    }
-
-    const data = await response.json()
-    return data.response || ''
-  } catch (error) {
-    console.error('Error generating Pachai response:', error)
-    // Fallback para resposta básica em caso de erro
-    return 'Desculpe, não consegui processar sua mensagem agora. Pode tentar novamente?'
+function inferConversationState(conversationHistory: string): ConversationState {
+  // Por enquanto, implementação simples baseada no tamanho e conteúdo
+  // Pode ser melhorada depois com análise mais sofisticada
+  const history = conversationHistory.toLowerCase()
+  
+  if (history.includes('mudou') || history.includes('atualizar') || history.includes('revisar')) {
+    return 'reopen'
   }
+  
+  if (history.includes('veredito') || history.includes('decisão') || history.includes('fechar')) {
+    return 'veredict'
+  }
+  
+  if (history.length < 100) {
+    return 'exploration'
+  }
+  
+  if (history.includes('entendi') || history.includes('resumir') || history.includes('conclusão')) {
+    return 'convergence'
+  }
+  
+  if (history.includes('dor') || history.includes('problema') || history.includes('incomoda')) {
+    return 'clarification'
+  }
+  
+  return 'exploration'
+}
+
+/**
+ * Gera resposta do Pachai usando o sistema de prompts por estado
+ */
+export async function generatePachaiResponse(params: {
+  conversationHistory: string;
+  userMessage: string;
+}) {
+  const state = inferConversationState(params.conversationHistory);
+
+  const systemPrompt = getPromptForState(state);
+
+  return {
+    systemPrompt,
+    userMessage: params.userMessage
+  };
 }
 
 /**
@@ -129,4 +148,3 @@ export async function getPreviousVeredicts(productId: string, supabase: any) {
 
   return data || []
 }
-
