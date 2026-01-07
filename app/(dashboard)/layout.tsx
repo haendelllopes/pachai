@@ -1,5 +1,6 @@
 import ProductsSidebar from '@/app/components/sidebar/ProductsSidebar'
 import ProtectedRoute from '@/app/components/auth/ProtectedRoute'
+import { ProductsProvider } from '@/app/contexts/ProductsContext'
 
 export default function DashboardLayout({
   children,
@@ -8,21 +9,23 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        overflow: 'hidden',
-      }}>
-        <ProductsSidebar />
-        <main style={{
-          flex: 1,
+      <ProductsProvider>
+        <div style={{
           display: 'flex',
-          flexDirection: 'column',
+          height: '100vh',
           overflow: 'hidden',
         }}>
-          {children}
-        </main>
-      </div>
+          <ProductsSidebar />
+          <main style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {children}
+          </main>
+        </div>
+      </ProductsProvider>
     </ProtectedRoute>
   )
 }

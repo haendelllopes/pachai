@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/app/lib/supabase/client'
 import ContextMenu from './ContextMenu'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
+import { useProducts } from '@/app/contexts/ProductsContext'
 
 interface Product {
   id: string
@@ -22,10 +23,17 @@ interface Conversation {
 export default function ProductsSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [products, setProducts] = useState<Product[]>([])
-  const [conversationsByProduct, setConversationsByProduct] = useState<Record<string, Conversation[]>>({})
+  const { 
+    products, 
+    conversationsByProduct, 
+    loading, 
+    fetchProducts, 
+    fetchConversations,
+    addConversation,
+    updateProductName,
+    updateConversationTitle
+  } = useProducts()
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>('')
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
@@ -86,40 +94,6 @@ export default function ProductsSidebar() {
     fetchUser()
   }, [])
 
-  async function fetchProducts() {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching products:', error)
-    } else {
-      setProducts(data || [])
-    }
-    setLoading(false)
-  }
-
-  async function fetchConversations(productId: string) {
-    if (conversationsByProduct[productId]) return
-
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id, title, created_at')
-      .eq('product_id', productId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching conversations:', error)
-    } else {
-      setConversationsByProduct(prev => ({
-        ...prev,
-        [productId]: data || []
-      }))
-    }
-  }
 
   function toggleProduct(productId: string) {
     const newExpanded = new Set(expandedProducts)
@@ -145,11 +119,8 @@ export default function ProductsSidebar() {
       return
     }
 
-    // Atualizar lista de conversas
-    setConversationsByProduct(prev => ({
-      ...prev,
-      [productId]: [newConversation, ...(prev[productId] || [])]
-    }))
+    // Adicionar nova conversa ao contexto
+    addConversation(productId, newConversation)
 
     // Expandir produto se não estiver expandido
     if (!expandedProducts.has(productId)) {
@@ -178,6 +149,10 @@ export default function ProductsSidebar() {
         if (pathname?.includes(`/products/${productId}`)) {
           router.push('/products')
         }
+      } else {
+        const errorData = await response.json()
+        console.error('Error deleting product:', errorData)
+        alert('Erro ao excluir projeto: ' + (errorData.error || 'Erro desconhecido'))
       }
     } catch (error) {
       console.error('Error deleting product:', error)
@@ -191,11 +166,8 @@ export default function ProductsSidebar() {
         credentials: 'include',
       })
       if (response.ok) {
-        // Atualizar estado local imediatamente
-        setConversationsByProduct(prev => ({
-          ...prev,
-          [productId]: (prev[productId] || []).filter(c => c.id !== conversationId)
-        }))
+        // Recarregar conversas do contexto após deletar (forçar refresh)
+        await fetchConversations(productId, true)
         // Fechar modal
         setDeleteModal(null)
         // Se estava na conversa deletada, redirecionar
@@ -215,14 +187,14 @@ export default function ProductsSidebar() {
 
   useEffect(() => {
     fetchProducts()
-  }, [])
+  }, [fetchProducts])
 
   // Refresh products when pathname changes
   useEffect(() => {
     if (pathname && pathname !== '/products/new') {
       fetchProducts()
     }
-  }, [pathname])
+  }, [pathname, fetchProducts])
 
   // Auto-expand product if viewing a conversation
   useEffect(() => {
@@ -234,7 +206,7 @@ export default function ProductsSidebar() {
         fetchConversations(productId)
       }
     }
-  }, [pathname])
+  }, [pathname, expandedProducts, fetchConversations])
 
   // Detectar se está em uma conversa ativa
   const isInConversation = pathname?.includes('/conversations/')
@@ -439,18 +411,10 @@ export default function ProductsSidebar() {
                           const newName = e.target.value.trim()
                           if (newName && newName !== product.name) {
                             try {
-                              const response = await fetch(`/api/products/${product.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({ name: newName }),
-                              })
-                              if (response.ok) {
-                                await fetchProducts()
-                                router.refresh()
-                              }
+                              await updateProductName(product.id, newName)
                             } catch (error) {
                               console.error('Error updating product:', error)
+                              alert('Erro ao atualizar nome do projeto: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
                             }
                           }
                           setEditingItem(null)
@@ -575,32 +539,10 @@ export default function ProductsSidebar() {
                                   const newTitle = e.target.value.trim()
                                   if (newTitle && newTitle !== convTitle) {
                                     try {
-                                      const response = await fetch(`/api/conversations/${conversation.id}`, {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        credentials: 'include',
-                                        body: JSON.stringify({ title: newTitle }),
-                                      })
-                                      if (response.ok) {
-                                        const updatedConversation = await response.json()
-                                        // Atualizar estado local imediatamente
-                                        setConversationsByProduct(prev => ({
-                                          ...prev,
-                                          [product.id]: (prev[product.id] || []).map(c =>
-                                            c.id === conversation.id
-                                              ? { ...c, title: updatedConversation.title }
-                                              : c
-                                          )
-                                        }))
-                                        router.refresh()
-                                      } else {
-                                        const errorData = await response.json()
-                                        console.error('Error updating conversation:', errorData)
-                                        alert('Erro ao atualizar título: ' + (errorData.error || 'Erro desconhecido'))
-                                      }
+                                      await updateConversationTitle(conversation.id, product.id, newTitle)
                                     } catch (error) {
                                       console.error('Error updating conversation:', error)
-                                      alert('Erro ao atualizar título')
+                                      alert('Erro ao atualizar título: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
                                     }
                                   }
                                   setEditingItem(null)

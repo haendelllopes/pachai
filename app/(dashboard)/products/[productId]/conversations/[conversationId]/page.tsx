@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import ChatInterface from '@/app/components/chat/ChatInterface'
-import { createClient } from '@/app/lib/supabase/client'
+import { useProducts } from '@/app/contexts/ProductsContext'
 
 export default function ConversationPage() {
   const params = useParams()
@@ -11,71 +11,35 @@ export default function ConversationPage() {
   const productId = params.productId as string
   const conversationId = params.conversationId as string
   
-  const [productName, setProductName] = useState<string>('')
-  const [conversationTitle, setConversationTitle] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { products, conversationsByProduct, fetchProducts, fetchConversations } = useProducts()
   const [error, setError] = useState<string | null>(null)
 
-  async function loadProductAndConversation() {
-    const supabase = createClient()
-
-    // Buscar dados do produto
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('id, name')
-      .eq('id', productId)
-      .single()
-
-    if (productError) {
-      console.error('Error fetching product:', productError)
-      setError('Produto não encontrado')
-      setLoading(false)
-      return
-    }
-
-    if (product) {
-      setProductName(product.name)
-    }
-
-    // Verificar se a conversa existe e pertence ao produto
-    const { data: conversation, error: conversationError } = await supabase
-      .from('conversations')
-      .select('id, product_id, title')
-      .eq('id', conversationId)
-      .eq('product_id', productId)
-      .single()
-
-    if (conversationError || !conversation) {
-      console.error('Error fetching conversation:', conversationError)
-      setError('Conversa não encontrada')
-      setLoading(false)
-      return
-    }
-
-    if (conversation) {
-      setConversationTitle(conversation.title)
-    }
-
-    setLoading(false)
-  }
-
+  // Buscar produto e conversas quando a página carregar
   useEffect(() => {
     if (productId && conversationId) {
-      loadProductAndConversation()
+      fetchProducts()
+      fetchConversations(productId)
     }
-  }, [productId, conversationId])
+  }, [productId, conversationId, fetchProducts, fetchConversations])
 
-  // Atualizar título quando a página receber visibilidade (útil após renomear)
+  // Obter dados do contexto
+  const product = products.find(p => p.id === productId)
+  const productName = product?.name || ''
+  const conversations = conversationsByProduct[productId] || []
+  const conversation = conversations.find(c => c.id === conversationId)
+  const conversationTitle = conversation?.title || null
+  const loading = (!product && products.length > 0) || (!conversation && conversations.length > 0)
+
+  // Verificar se produto ou conversa não foram encontrados
   useEffect(() => {
-    function handleVisibilityChange() {
-      if (document.visibilityState === 'visible' && productId && conversationId && !loading) {
-        loadProductAndConversation()
-      }
+    if (products.length > 0 && !product) {
+      setError('Produto não encontrado')
+    } else if (conversations.length > 0 && !conversation) {
+      setError('Conversa não encontrada')
+    } else {
+      setError(null)
     }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [productId, conversationId, loading])
+  }, [products, conversations, product, conversation])
 
   if (loading) {
     return (
