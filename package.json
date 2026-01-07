@@ -10,7 +10,7 @@
     "migrations": "node scripts/apply-migrations.js"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.1.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.39.0",
     "next": "^14.0.4",
     "openai": "^6.15.0",

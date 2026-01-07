@@ -1,8 +1,10 @@
-import { createClient } from '@/app/lib/supabase/server'
+import { createRouteHandlerClient } from '@/app/lib/supabase/route-handler'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
+  // Usar createRouteHandlerClient para Route Handlers (App Router + PWA)
+  const supabase = await createRouteHandlerClient({ cookies })
   // Usar getSession() em vez de getUser() para App Router + PWA
   const { data: { session } } = await supabase.auth.getSession()
 
