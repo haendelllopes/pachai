@@ -5,8 +5,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - usa cookies() sincronizado com middleware
-  const supabase = await createClientFromRequest(request)
+  // Criar cliente Supabase - usa cookies() do next/headers (mesma abordagem das outras rotas)
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -60,8 +60,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - usa cookies() sincronizado com middleware
-  const supabase = await createClientFromRequest(request)
+  // Criar cliente Supabase - usa cookies() do next/headers (mesma abordagem das outras rotas)
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
