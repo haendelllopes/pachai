@@ -151,7 +151,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       // A mensagem já foi salva pela API route, buscar atualizada
       await fetchMessages()
       
-      // Gerar título automaticamente após 2 mensagens do usuário
+      // Gerar título automaticamente após 2 mensagens do usuário OU 1 mensagem longa (>200 caracteres)
       // Verificar após buscar mensagens atualizadas
       const checkAndGenerateTitle = async () => {
         const supabase = createClient()
@@ -163,11 +163,12 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
         
         if (!currentMessages) return
         
-        // Contar mensagens do usuário (não total)
+        // Contar mensagens do usuário e verificar mensagens longas
         const userMessages = currentMessages.filter(m => m.role === 'user')
+        const hasLongMessage = userMessages.some(m => m.content.length > 200)
         
-        // Verificar após 2 mensagens do usuário
-        if (userMessages.length >= 2) {
+        // Verificar após 2 mensagens do usuário OU 1 mensagem longa (>200 caracteres)
+        if (userMessages.length >= 2 || hasLongMessage) {
           // Verificar se título é null ou "Nova conversa"
           const { data: conv } = await supabase
             .from('conversations')
@@ -177,11 +178,11 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           
           if (!conv?.title || conv.title === 'Nova conversa') {
             try {
-              // Usar função do contexto em vez de reload
+              // Passar todas as mensagens (user + pachai) para a API
               await generateAndUpdateConversationTitle(conversationId, productId, currentMessages)
             } catch (error) {
               console.error('Error generating conversation title:', error)
-              // Não bloquear o fluxo se falhar
+              // Não bloquear o fluxo se falhar (erro silencioso para títulos genéricos)
             }
           }
         }
