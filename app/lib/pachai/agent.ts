@@ -121,6 +121,7 @@ export async function getConversationContext(
 
 /**
  * Busca vereditos anteriores do produto (para conexão)
+ * Mantida para compatibilidade com código existente
  */
 export async function getPreviousVeredicts(productId: string, supabase: any) {
   const { data, error } = await supabase
@@ -136,4 +137,64 @@ export async function getPreviousVeredicts(productId: string, supabase: any) {
   }
 
   return data || []
+}
+
+/**
+ * Busca vereditos para contexto do Pachai
+ * Ordem determinística (NÃO por relevância):
+ * 1. Vereditos globais (scope='global') - created_at DESC
+ * 2. Vereditos do projeto (scope='project' ou NULL, product_id) - created_at DESC
+ * 
+ * Limite: máximo 3 globais + 3 do projeto
+ * Usa campos existentes (pain, value) se novos campos (title, content) não existirem
+ */
+export async function getVeredictsForContext(
+  productId: string,
+  supabase: any
+): Promise<Array<{ content: string }>> {
+  const veredicts: Array<{ content: string }> = []
+
+  // 1. Buscar vereditos globais (máximo 3)
+  // Por enquanto, vereditos sem scope são tratados como do projeto
+  // Quando scope='global' existir, buscar aqui
+  const { data: globalVeredicts, error: globalError } = await supabase
+    .from('veredicts')
+    .select('title, content, pain, value')
+    .eq('scope', 'global')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  if (!globalError && globalVeredicts) {
+    for (const v of globalVeredicts) {
+      // Usar content se existir, senão usar pain + value
+      if (v.content) {
+        veredicts.push({ content: v.content })
+      } else if (v.pain && v.value) {
+        veredicts.push({ content: `Dor: ${v.pain}\nValor: ${v.value}` })
+      }
+    }
+  }
+
+  // 2. Buscar vereditos do projeto (máximo 3)
+  // Inclui vereditos com scope='project' ou scope NULL (compatibilidade)
+  const { data: projectVeredicts, error: projectError } = await supabase
+    .from('veredicts')
+    .select('title, content, pain, value')
+    .eq('product_id', productId)
+    .or('scope.is.null,scope.eq.project')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  if (!projectError && projectVeredicts) {
+    for (const v of projectVeredicts) {
+      // Usar content se existir, senão usar pain + value
+      if (v.content) {
+        veredicts.push({ content: v.content })
+      } else if (v.pain && v.value) {
+        veredicts.push({ content: `Dor: ${v.pain}\nValor: ${v.value}` })
+      }
+    }
+  }
+
+  return veredicts
 }

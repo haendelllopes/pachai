@@ -4,7 +4,8 @@ import { REOPEN_PROMPT } from './prompts/reopen'
 import { getPromptForState, ConversationState } from './prompts'
 import { inferConversationStateFromMessages, VeredictSignal, ConversationStatus, ConversationState as StateEnum } from './states'
 import { getConversationMessages, getConversation } from './db'
-import { getPreviousVeredicts } from './agent'
+import { getPreviousVeredicts, getVeredictsForContext } from './agent'
+import { getConversationAttachments } from './attachments'
 import { getConversationSummary } from './reopen'
 import { Message } from './agent'
 import OpenAI from 'openai'
@@ -15,6 +16,53 @@ type PachaiRuntimeInput = {
   userMessage: string
   pauseRequested: boolean
   veredictSignal?: VeredictSignal
+}
+
+/**
+ * Constrói contexto ordenado para o Pachai
+ * Ordem: Vereditos → Anexos → Mensagens
+ */
+function buildContextString(
+  veredicts: Array<{ content: string }>,
+  attachments: Array<{ extracted_text: string }>,
+  messages: Message[]
+): string {
+  let context = ''
+
+  // 1. Vereditos (globais → projeto, ordem determinística)
+  if (veredicts.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Vereditos (Memória Deliberada)
+━━━━━━━━━━━━━━━━━━
+
+${veredicts.map((v, i) => `${i + 1}. ${v.content}`).join('\n\n')}
+`
+  }
+
+  // 2. Anexos da conversa (extracted_text se disponível)
+  if (attachments.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Anexos da Conversa
+━━━━━━━━━━━━━━━━━━
+
+${attachments.map((a, i) => `Anexo ${i + 1}:\n${a.extracted_text}`).join('\n\n')}
+`
+  }
+
+  // 3. Mensagens da conversa (já formatadas)
+  if (messages.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Mensagens da Conversa
+━━━━━━━━━━━━━━━━━━
+
+${messages.map(m => `${m.role === 'user' ? 'Usuário' : 'Pachai'}: ${m.content}`).join('\n\n')}
+`
+  }
+
+  return context
 }
 
 /**
@@ -221,8 +269,22 @@ export async function getPachaiResponse({
     )
   }
 
-  // 4. Obter prompt usando função centralizada
-  const { prompt: systemPrompt, maxHistoryMessages } = getPromptForConversationState({
+  // 4. Buscar contexto adicional (vereditos e anexos) se não estiver pausada
+  let veredicts: Array<{ content: string }> = []
+  let attachments: Array<{ extracted_text: string }> = []
+
+  if (conversation.status !== 'PAUSED') {
+    const supabase = await createClient()
+    
+    // Buscar vereditos para contexto (ordem determinística, limites aplicados)
+    veredicts = await getVeredictsForContext(conversation.product_id, supabase)
+    
+    // Buscar anexos da conversa (limite de injeção de contexto: 2 mais recentes prontos)
+    attachments = await getConversationAttachments(conversationId, supabase, 2)
+  }
+
+  // 5. Obter prompt usando função centralizada
+  const { prompt: basePrompt, maxHistoryMessages } = getPromptForConversationState({
     conversationStatus: conversation.status as ConversationStatus,
     inferredState,
     pauseRequested,
@@ -230,7 +292,11 @@ export async function getPachaiResponse({
     previousVeredicts
   })
 
-  // 5. Gerar resposta
+  // 6. Construir contexto ordenado e adicionar ao prompt
+  const contextString = buildContextString(veredicts, attachments, history)
+  const systemPrompt = basePrompt + contextString
+
+  // 7. Gerar resposta
   return callOpenAI({
     systemPrompt,
     messages: history,

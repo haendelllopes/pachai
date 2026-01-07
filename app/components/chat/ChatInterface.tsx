@@ -5,6 +5,9 @@ import Image from 'next/image'
 import MessageBubble from './MessageBubble'
 import ErrorMessage from './ErrorMessage'
 import VeredictForm from './VeredictForm'
+import AttachmentTrigger from './AttachmentTrigger'
+import AttachmentContextBar from './AttachmentContextBar'
+import { useAttachmentManager } from '@/app/hooks/useAttachmentManager'
 import { createClient } from '@/app/lib/supabase/client'
 
 interface Message {
@@ -30,11 +33,15 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
   
+  // AttachmentManager isolado - gerencia upload e estado de anexos
+  const { attachments, uploading, uploadFile, deleteAttachment, refreshAttachments } = useAttachmentManager(conversationId)
+  
   const MAX_HEIGHT = 160
 
   useEffect(() => {
     fetchMessages()
-  }, [conversationId])
+    refreshAttachments(conversationId)
+  }, [conversationId, refreshAttachments])
 
   useEffect(() => {
     scrollToBottom()
@@ -399,6 +406,12 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           )}
         </div>
 
+        {/* Barra de contexto de anexos */}
+        <AttachmentContextBar
+          attachments={attachments}
+          onDelete={deleteAttachment}
+        />
+
         {/* Caixa de escrita */}
         <form
           className="chat-input"
@@ -407,10 +420,16 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
             display: 'flex',
             gap: '0.5rem',
             padding: '1rem',
-            borderTop: '1px solid var(--border-soft)',
+            borderTop: attachments.length > 0 ? 'none' : '1px solid var(--border-soft)',
             background: 'var(--bg-soft)',
           }}
         >
+          <AttachmentTrigger
+            onFileSelect={async (file) => {
+              await uploadFile(file, conversationId)
+            }}
+            disabled={loading || uploading}
+          />
           <textarea
             ref={inputRef}
             rows={1}

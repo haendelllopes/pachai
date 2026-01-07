@@ -81,6 +81,9 @@ export interface Database {
           value: string
           notes: string | null
           version: number
+          scope: 'global' | 'project' | null
+          title: string | null
+          content: string | null
           created_at: string
         }
         Insert: {
@@ -91,6 +94,9 @@ export interface Database {
           value: string
           notes?: string | null
           version?: number
+          scope?: 'global' | 'project' | null
+          title?: string | null
+          content?: string | null
           created_at?: string
         }
         Update: {
@@ -101,6 +107,50 @@ export interface Database {
           value?: string
           notes?: string | null
           version?: number
+          scope?: 'global' | 'project' | null
+          title?: string | null
+          content?: string | null
+          created_at?: string
+        }
+      }
+      conversation_attachments: {
+        Row: {
+          id: string
+          conversation_id: string
+          user_id: string
+          type: 'document' | 'image' | 'audio' | 'video'
+          file_name: string
+          mime_type: string
+          file_url: string
+          extracted_text: string | null
+          source: 'upload' | 'recording'
+          status: 'processing' | 'ready' | 'failed'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          user_id: string
+          type: 'document' | 'image' | 'audio' | 'video'
+          file_name: string
+          mime_type: string
+          file_url: string
+          extracted_text?: string | null
+          source?: 'upload' | 'recording'
+          status?: 'processing' | 'ready' | 'failed'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          user_id?: string
+          type?: 'document' | 'image' | 'audio' | 'video'
+          file_name?: string
+          mime_type?: string
+          file_url?: string
+          extracted_text?: string | null
+          source?: 'upload' | 'recording'
+          status?: 'processing' | 'ready' | 'failed'
           created_at?: string
         }
       }
