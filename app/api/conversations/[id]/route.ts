@@ -5,8 +5,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - usa cookies() do next/headers (mesma abordagem das outras rotas)
-  const supabase = await createClientFromRequest()
+  // Criar response para propagar cookies atualizados
+  let response = NextResponse.next({ request })
+  
+  // Criar cliente Supabase usando cookies do request (atualizados pelo middleware)
+  const supabase = createClientFromRequest(request, response)
   
   const {
     data: { user },
@@ -53,15 +56,21 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  // Retornar resposta com cookies atualizados
+  return NextResponse.json(data, {
+    headers: response.headers,
+  })
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - usa cookies() do next/headers (mesma abordagem das outras rotas)
-  const supabase = await createClientFromRequest()
+  // Criar response para propagar cookies atualizados
+  let response = NextResponse.next({ request })
+  
+  // Criar cliente Supabase usando cookies do request (atualizados pelo middleware)
+  const supabase = createClientFromRequest(request, response)
   
   const {
     data: { user },
@@ -112,6 +121,9 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  // Retornar resposta com cookies atualizados
+  return NextResponse.json({ success: true }, {
+    headers: response.headers,
+  })
 }
 

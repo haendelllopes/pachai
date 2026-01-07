@@ -1,35 +1,37 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * Cria um cliente Supabase para uso em API routes (Route Handlers)
  * 
- * Usa cookies() do next/headers, mesma abordagem das outras rotas de API
- * que funcionam corretamente (/api/messages, /api/products, etc.)
- * 
- * O middleware atualiza os cookies antes da rota executar,
- * então cookies() deve ter acesso aos cookies atualizados
+ * IMPORTANTE: Em Route Handlers, especialmente em PWAs/serverless,
+ * cookies() do next/headers pode não estar sincronizado com os cookies
+ * atualizados pelo middleware. Por isso, usamos request.cookies diretamente,
+ * que são atualizados pelo middleware antes da rota executar.
  */
-export async function createClientFromRequest() {
-  const cookieStore = await cookies()
-
+export function createClientFromRequest(
+  request: NextRequest,
+  response?: NextResponse
+) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          // Usar cookies do request (atualizados pelo middleware)
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // The `setAll` method was called from a Route Handler.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+          // Atualizar cookies no request
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value)
+          })
+          // Se temos uma response, atualizar também
+          if (response) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
           }
         },
       },
