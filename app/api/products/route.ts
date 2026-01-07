@@ -3,13 +3,14 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Usar getSession() em vez de getUser() para App Router + PWA
+  const { data: { session } } = await supabase.auth.getSession()
 
-  if (!user) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  
+  const user = session.user
 
   const { data, error } = await supabase
     .from('products')
@@ -26,13 +27,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Usar getSession() em vez de getUser() para App Router + PWA
+  const { data: { session } } = await supabase.auth.getSession()
 
-  if (!user) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  
+  const user = session.user
 
   const { name } = await request.json()
 

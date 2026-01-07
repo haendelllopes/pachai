@@ -29,23 +29,15 @@ export async function PATCH(
     }
   )
   
-  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  // Usar getSession() em vez de getUser() para App Router + PWA
   const { data: { session } } = await supabase.auth.getSession()
   
-  if (!session) {
+  if (!session?.user) {
     console.error('[PATCH] No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    console.error('[PATCH] Auth error:', userError)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const user = session.user
 
   const { title } = await request.json()
 
@@ -112,23 +104,15 @@ export async function DELETE(
     }
   )
   
-  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  // Usar getSession() em vez de getUser() para App Router + PWA
   const { data: { session } } = await supabase.auth.getSession()
   
-  if (!session) {
+  if (!session?.user) {
     console.error('[DELETE] No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    console.error('[DELETE] Auth error:', userError)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const user = session.user
 
   // Verificar se a conversa pertence ao usuário (via produto)
   const { data: conversation } = await supabase

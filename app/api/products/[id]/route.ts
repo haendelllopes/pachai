@@ -29,23 +29,15 @@ export async function PATCH(
     }
   )
   
-  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  // Usar getSession() em vez de getUser() para App Router + PWA
   const { data: { session } } = await supabase.auth.getSession()
   
-  if (!session) {
+  if (!session?.user) {
     console.error('[PATCH products] No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    console.error('[PATCH products] Auth error:', userError)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const user = session.user
 
   const { name } = await request.json()
 
@@ -107,23 +99,15 @@ export async function DELETE(
     }
   )
   
-  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  // Usar getSession() em vez de getUser() para App Router + PWA
   const { data: { session } } = await supabase.auth.getSession()
   
-  if (!session) {
+  if (!session?.user) {
     console.error('[DELETE products] No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    console.error('[DELETE products] Auth error:', userError)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const user = session.user
 
   // Verificar se o produto pertence ao usuário
   const { data: product } = await supabase
