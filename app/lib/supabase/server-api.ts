@@ -1,18 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * Cria um cliente Supabase para uso em API routes (Route Handlers)
  * 
- * Estratégia: Usa cookies() do next/headers que está sincronizado com o middleware.
- * O middleware atualiza os cookies antes da rota executar, então cookies() deve
- * ter acesso aos cookies atualizados.
+ * IDÊNTICO ao createClient() usado nas outras rotas que funcionam.
+ * Usa cookies() do next/headers que está sincronizado com o middleware.
  */
-export async function createClientFromRequest(
-  request: NextRequest,
-  response?: NextResponse
-) {
+export async function createClientFromRequest() {
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -21,11 +16,9 @@ export async function createClientFromRequest(
     {
       cookies: {
         getAll() {
-          // Usar cookies() do next/headers (sincronizado com middleware)
           return cookieStore.getAll()
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          // Atualizar cookies no cookieStore
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -34,15 +27,6 @@ export async function createClientFromRequest(
             // The `setAll` method was called from a Route Handler.
             // This can be ignored if you have middleware refreshing
             // user sessions.
-          }
-          // Também atualizar no request e response se disponíveis
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value)
-          })
-          if (response) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options)
-            })
           }
         },
       },

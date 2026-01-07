@@ -15,11 +15,8 @@ export async function PATCH(
     authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
   })
   
-  // Criar response para propagar cookies atualizados
-  let response = NextResponse.next({ request })
-  
-  // Criar cliente Supabase usando cookies() do next/headers (sincronizado com middleware)
-  const supabase = await createClientFromRequest(request, response)
+  // Criar cliente Supabase - usa cookies() do next/headers (idêntico às outras rotas)
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -70,10 +67,7 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Retornar resposta com cookies atualizados
-  return NextResponse.json(data, {
-    headers: response.headers,
-  })
+  return NextResponse.json(data)
 }
 
 export async function DELETE(
@@ -90,11 +84,8 @@ export async function DELETE(
     authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
   })
   
-  // Criar response para propagar cookies atualizados
-  let response = NextResponse.next({ request })
-  
-  // Criar cliente Supabase usando cookies() do next/headers (sincronizado com middleware)
-  const supabase = await createClientFromRequest(request, response)
+  // Criar cliente Supabase - usa cookies() do next/headers (idêntico às outras rotas)
+  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -149,9 +140,6 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Retornar resposta com cookies atualizados
-  return NextResponse.json({ success: true }, {
-    headers: response.headers,
-  })
+  return NextResponse.json({ success: true })
 }
 
