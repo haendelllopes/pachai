@@ -1,29 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 
 /**
  * Cria um cliente Supabase para uso em API routes
- * Usa cookies() do Next.js que já está sincronizado com o middleware
+ * Usa os cookies diretamente do request para garantir sincronização com o middleware
  */
-export async function createClientFromRequest() {
-  const cookieStore = await cookies()
-  
+export function createClientFromRequest(request: NextRequest) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // O middleware já cuida de atualizar os cookies
-          }
+          // Em API routes, não podemos definir cookies diretamente
+          // O middleware já cuida de atualizar os cookies na resposta
+          // Apenas atualizamos na requisição para uso interno
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value)
+          })
         },
       },
     }

@@ -5,8 +5,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - cookies() já está sincronizado com middleware
-  const supabase = await createClientFromRequest()
+  // Criar cliente Supabase usando cookies diretamente do request
+  const supabase = createClientFromRequest(request)
   
   const {
     data: { user },
@@ -60,8 +60,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Criar cliente Supabase - cookies() já está sincronizado com middleware
-  const supabase = await createClientFromRequest()
+  // Criar cliente Supabase usando cookies diretamente do request
+  const supabase = createClientFromRequest(request)
   
   const {
     data: { user },
