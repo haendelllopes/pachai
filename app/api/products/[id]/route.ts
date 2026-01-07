@@ -1,16 +1,49 @@
-import { createClient } from '@/app/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = await createClient()
+  // Criar cliente Supabase diretamente na rota usando cookies()
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignorar se não conseguir (middleware já cuida disso)
+          }
+        },
+      },
+    }
+  )
+  
+  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    console.error('[PATCH products] No session found')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.error('[PATCH products] Auth error:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -48,15 +81,47 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = await createClient()
+  // Criar cliente Supabase diretamente na rota usando cookies()
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignorar se não conseguir (middleware já cuida disso)
+          }
+        },
+      },
+    }
+  )
+  
+  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    console.error('[DELETE products] No session found')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.error('[DELETE products] Auth error:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

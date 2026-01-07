@@ -29,6 +29,14 @@ export async function PATCH(
     }
   )
   
+  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    console.error('[PATCH] No session found')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
   const {
     data: { user },
     error: userError,
@@ -103,6 +111,14 @@ export async function DELETE(
       },
     }
   )
+  
+  // Chamar getSession() primeiro para garantir que a sessão seja inicializada
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    console.error('[DELETE] No session found')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   
   const {
     data: { user },
