@@ -18,8 +18,8 @@ export async function PATCH(
   // Criar response para propagar cookies atualizados
   let response = NextResponse.next({ request })
   
-  // Criar cliente Supabase usando cookies do request (atualizados pelo middleware)
-  const supabase = createClientFromRequest(request, response)
+  // Criar cliente Supabase usando cookies() do next/headers (sincronizado com middleware)
+  const supabase = await createClientFromRequest(request, response)
   
   const {
     data: { user },
@@ -93,8 +93,8 @@ export async function DELETE(
   // Criar response para propagar cookies atualizados
   let response = NextResponse.next({ request })
   
-  // Criar cliente Supabase usando cookies do request (atualizados pelo middleware)
-  const supabase = createClientFromRequest(request, response)
+  // Criar cliente Supabase usando cookies() do next/headers (sincronizado com middleware)
+  const supabase = await createClientFromRequest(request, response)
   
   const {
     data: { user },
