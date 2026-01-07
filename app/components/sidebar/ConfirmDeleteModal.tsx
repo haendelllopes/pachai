@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 interface ConfirmDeleteModalProps {
   isOpen: boolean
   onClose: () => void
@@ -19,6 +21,17 @@ export default function ConfirmDeleteModal({
   itemName,
   cascadeWarning,
 }: ConfirmDeleteModalProps) {
+  // Prevenir scroll do body quando modal está aberto
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (
@@ -33,7 +46,8 @@ export default function ConfirmDeleteModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 2000,
+        zIndex: 9999,
+        pointerEvents: 'auto',
       }}
       onClick={onClose}
     >
@@ -45,6 +59,9 @@ export default function ConfirmDeleteModal({
           maxWidth: '400px',
           width: '90%',
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+          position: 'relative',
+          zIndex: 10000,
+          pointerEvents: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -84,6 +101,8 @@ export default function ConfirmDeleteModal({
           display: 'flex',
           gap: '0.75rem',
           justifyContent: 'flex-end',
+          position: 'relative',
+          zIndex: 10001,
         }}>
           <button
             onClick={onClose}
@@ -95,6 +114,9 @@ export default function ConfirmDeleteModal({
               fontSize: '0.875rem',
               cursor: 'pointer',
               color: 'var(--text-main)',
+              position: 'relative',
+              zIndex: 10002,
+              pointerEvents: 'auto',
             }}
           >
             Cancelar
@@ -112,6 +134,9 @@ export default function ConfirmDeleteModal({
               fontSize: '0.875rem',
               cursor: 'pointer',
               color: 'white',
+              position: 'relative',
+              zIndex: 10002,
+              pointerEvents: 'auto',
             }}
           >
             Excluir

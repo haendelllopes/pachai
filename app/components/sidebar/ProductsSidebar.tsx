@@ -36,6 +36,7 @@ export default function ProductsSidebar() {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
   const [userName, setUserName] = useState<string>('')
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isHoveringSidebar, setIsHoveringSidebar] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = useState<{
     type: 'product' | 'conversation'
@@ -234,6 +235,7 @@ export default function ProductsSidebar() {
         // Quando recolhida, mostrar affordance visual clara
         if (collapsed) {
           e.currentTarget.style.opacity = '1'
+          setIsHoveringSidebar(true)
         }
       }}
       onMouseLeave={(e) => {
@@ -243,6 +245,7 @@ export default function ProductsSidebar() {
         // Quando recolhida, voltar opacidade normal
         if (collapsed) {
           e.currentTarget.style.opacity = '1'
+          setIsHoveringSidebar(false)
         }
       }}
     >
@@ -254,56 +257,104 @@ export default function ProductsSidebar() {
         marginBottom: collapsed ? '24px' : '16px',
         gap: '8px',
       }}>
-        {/* Ícone do Pachai (apenas visual) */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-        }}>
-          <Image
-            src="/image/hero-icon.jpeg"
-            alt="Pachai"
-            width={collapsed ? 32 : 24}
-            height={collapsed ? 32 : 24}
+        {collapsed ? (
+          /* Quando recolhida: mostrar apenas favicon, clicável, troca para expandir no hover */
+          <button
+            onClick={() => setCollapsed(false)}
             style={{
-              width: collapsed ? '32px' : '24px',
-              height: collapsed ? '32px' : '24px',
-              opacity: 0.85,
+              width: '32px',
+              height: '32px',
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'all 0.2s',
             }}
-          />
-        </div>
-
-        {/* Botão Explícito de Expandir/Recolher */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={{
-            padding: collapsed ? '8px' : '4px 8px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: collapsed ? '1.25rem' : '0.875rem',
-            color: 'var(--text-main)',
-            opacity: 0.7,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '4px',
-            transition: 'all 0.2s',
-            minWidth: collapsed ? '32px' : 'auto',
-            minHeight: collapsed ? '32px' : 'auto',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1'
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0.7'
-            e.currentTarget.style.background = 'transparent'
-          }}
-          title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-        >
-          {collapsed ? '▶' : '◀'}
-        </button>
+            title="Expandir sidebar"
+          >
+            {isHoveringSidebar ? (
+              /* Ícone de expandir no hover */
+              <span style={{
+                fontSize: '1.25rem',
+                color: 'var(--text-main)',
+                opacity: 0.7,
+              }}>▶</span>
+            ) : (
+              /* Favicon quando não está em hover */
+              <Image
+                src="/icons/icon-192x192.png"
+                alt="Pachai"
+                width={32}
+                height={32}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  opacity: 0.85,
+                }}
+              />
+            )}
+          </button>
+        ) : (
+          /* Quando expandida: mostrar ícone + texto + botão de recolher */
+          <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <Image
+                src="/icons/icon-192x192.png"
+                alt="Pachai"
+                width={24}
+                height={24}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  opacity: 0.85,
+                }}
+              />
+              <span style={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'var(--text-main)',
+              }}>
+                Pachai
+              </span>
+            </div>
+            <button
+              onClick={() => setCollapsed(true)}
+              style={{
+                padding: '4px 8px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                color: 'var(--text-main)',
+                opacity: 0.7,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.7'
+                e.currentTarget.style.background = 'transparent'
+              }}
+              title="Recolher sidebar"
+            >
+              ◀
+            </button>
+          </>
+        )}
       </div>
 
       {/* Botão "+ Novo projeto" - logo acima de PROJETOS */}
@@ -436,6 +487,8 @@ export default function ProductsSidebar() {
                           borderRadius: '6px',
                           background: 'white',
                           outline: 'none',
+                          position: 'relative',
+                          zIndex: 1000,
                         }}
                       />
                     ) : (
@@ -564,6 +617,8 @@ export default function ProductsSidebar() {
                                   borderRadius: '6px',
                                   background: 'white',
                                   outline: 'none',
+                                  position: 'relative',
+                                  zIndex: 1000,
                                 }}
                               />
                             ) : (
@@ -676,6 +731,8 @@ export default function ProductsSidebar() {
             <div style={{
               width: '24px',
               height: '24px',
+              minWidth: '24px',
+              minHeight: '24px',
               borderRadius: '50%',
               background: 'var(--text-main)',
               color: 'var(--bg-main)',
@@ -684,6 +741,9 @@ export default function ProductsSidebar() {
               justifyContent: 'center',
               fontSize: '0.75rem',
               fontWeight: 500,
+              lineHeight: 1,
+              boxSizing: 'border-box',
+              flexShrink: 0,
             }}>
               {userName.charAt(0).toUpperCase()}
             </div>

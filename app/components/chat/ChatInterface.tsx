@@ -400,6 +400,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           onSubmit={handleSend}
           style={{
             display: 'flex',
+            alignItems: 'center',
             gap: '0.5rem',
             padding: '1rem',
             borderTop: attachments.length > 0 ? 'none' : '1px solid var(--border-soft)',
@@ -446,6 +447,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
               fontFamily: 'inherit',
               color: 'var(--text-main)',
               outline: 'none',
+              alignSelf: 'flex-start',
             }}
           />
           <button
