@@ -16,54 +16,66 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function loadProductAndConversation() {
-      const supabase = createClient()
+  async function loadProductAndConversation() {
+    const supabase = createClient()
 
-      // Buscar dados do produto
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('id, name')
-        .eq('id', productId)
-        .single()
+    // Buscar dados do produto
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, name')
+      .eq('id', productId)
+      .single()
 
-      if (productError) {
-        console.error('Error fetching product:', productError)
-        setError('Produto não encontrado')
-        setLoading(false)
-        return
-      }
-
-      if (product) {
-        setProductName(product.name)
-      }
-
-      // Verificar se a conversa existe e pertence ao produto
-      const { data: conversation, error: conversationError } = await supabase
-        .from('conversations')
-        .select('id, product_id, title')
-        .eq('id', conversationId)
-        .eq('product_id', productId)
-        .single()
-
-      if (conversationError || !conversation) {
-        console.error('Error fetching conversation:', conversationError)
-        setError('Conversa não encontrada')
-        setLoading(false)
-        return
-      }
-
-      if (conversation) {
-        setConversationTitle(conversation.title)
-      }
-
+    if (productError) {
+      console.error('Error fetching product:', productError)
+      setError('Produto não encontrado')
       setLoading(false)
+      return
     }
 
+    if (product) {
+      setProductName(product.name)
+    }
+
+    // Verificar se a conversa existe e pertence ao produto
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .select('id, product_id, title')
+      .eq('id', conversationId)
+      .eq('product_id', productId)
+      .single()
+
+    if (conversationError || !conversation) {
+      console.error('Error fetching conversation:', conversationError)
+      setError('Conversa não encontrada')
+      setLoading(false)
+      return
+    }
+
+    if (conversation) {
+      setConversationTitle(conversation.title)
+    }
+
+    setLoading(false)
+  }
+
+  useEffect(() => {
     if (productId && conversationId) {
       loadProductAndConversation()
     }
   }, [productId, conversationId])
+
+  // Atualizar título quando a página receber visibilidade (útil após renomear)
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && productId && conversationId && !loading) {
+        loadProductAndConversation()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [productId, conversationId, loading])
 
   if (loading) {
     return (

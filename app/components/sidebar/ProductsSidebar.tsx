@@ -191,14 +191,25 @@ export default function ProductsSidebar() {
         credentials: 'include',
       })
       if (response.ok) {
-        await fetchConversations(productId)
+        // Atualizar estado local imediatamente
+        setConversationsByProduct(prev => ({
+          ...prev,
+          [productId]: (prev[productId] || []).filter(c => c.id !== conversationId)
+        }))
+        // Fechar modal
+        setDeleteModal(null)
         // Se estava na conversa deletada, redirecionar
         if (pathname?.includes(`/conversations/${conversationId}`)) {
           router.push(`/products/${productId}`)
         }
+      } else {
+        const errorData = await response.json()
+        console.error('Error deleting conversation:', errorData)
+        alert('Erro ao excluir conversa: ' + (errorData.error || 'Erro desconhecido'))
       }
     } catch (error) {
       console.error('Error deleting conversation:', error)
+      alert('Erro ao excluir conversa')
     }
   }
 
@@ -571,11 +582,25 @@ export default function ProductsSidebar() {
                                         body: JSON.stringify({ title: newTitle }),
                                       })
                                       if (response.ok) {
-                                        await fetchConversations(product.id)
+                                        const updatedConversation = await response.json()
+                                        // Atualizar estado local imediatamente
+                                        setConversationsByProduct(prev => ({
+                                          ...prev,
+                                          [product.id]: (prev[product.id] || []).map(c =>
+                                            c.id === conversation.id
+                                              ? { ...c, title: updatedConversation.title }
+                                              : c
+                                          )
+                                        }))
                                         router.refresh()
+                                      } else {
+                                        const errorData = await response.json()
+                                        console.error('Error updating conversation:', errorData)
+                                        alert('Erro ao atualizar título: ' + (errorData.error || 'Erro desconhecido'))
                                       }
                                     } catch (error) {
                                       console.error('Error updating conversation:', error)
+                                      alert('Erro ao atualizar título')
                                     }
                                   }
                                   setEditingItem(null)
