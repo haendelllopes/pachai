@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 /**
- * Cria um cliente Supabase para uso em Route Handlers (app/api/**/route.ts)
+ * Cria um cliente Supabase para uso em Route Handlers (app/api/.../route.ts)
  * 
  * Esta função é um wrapper em torno de createServerClient que configura
  * corretamente os cookies para Route Handlers no App Router + PWA.
@@ -10,8 +10,8 @@ import { cookies } from 'next/headers'
  * @param options - Opções contendo cookies (compatível com interface esperada)
  * @returns Cliente Supabase configurado para Route Handlers
  */
-export async function createRouteHandlerClient({ cookies }: { cookies: typeof cookies }) {
-  // Obter cookieStore do parâmetro cookies
+export async function createRouteHandlerClient(_options: { cookies: typeof cookies }) {
+  // Obter cookieStore usando cookies() diretamente (ignorar parâmetro para compatibilidade)
   const cookieStore = await cookies()
 
   return createServerClient(
