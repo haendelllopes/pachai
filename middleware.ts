@@ -18,14 +18,25 @@ export async function middleware(request: NextRequest) {
           // Atualizar cookies na requisição E na resposta
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
-            response.cookies.set(name, value, options)
+            // Usar opções do Supabase, mas garantir SameSite para PWA se não estiver definido
+            const cookieOptions = {
+              ...options,
+              // Se SameSite não estiver definido, usar 'lax' para compatibilidade com PWA
+              // Isso permite cookies em requisições cross-site (necessário para PWAs)
+              sameSite: options?.sameSite || 'lax',
+            }
+            response.cookies.set(name, value, cookieOptions)
           })
           // Recriar response para garantir que os cookies atualizados sejam propagados
           response = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            const cookieOptions = {
+              ...options,
+              sameSite: options?.sameSite || 'lax',
+            }
+            response.cookies.set(name, value, cookieOptions)
           })
         },
       },
