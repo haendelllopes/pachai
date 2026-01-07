@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
 
@@ -20,47 +20,70 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [creatingConversation, setCreatingConversation] = useState(false)
 
-  useEffect(() => {
-    async function loadProductAndConversations() {
-      const supabase = createClient()
+  const loadProductAndConversations = useCallback(async () => {
+    const supabase = createClient()
 
-      // Buscar dados do produto
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('id, name')
-        .eq('id', productId)
-        .single()
+    // Buscar dados do produto
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, name')
+      .eq('id', productId)
+      .single()
 
-      if (productError) {
-        console.error('Error fetching product:', productError)
-        setLoading(false)
-        return
-      }
-
-      if (product) {
-        setProductName(product.name)
-      }
-
-      // Buscar conversas do projeto
-      const { data: conversationsData, error: conversationsError } = await supabase
-        .from('conversations')
-        .select('id, title, created_at')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false })
-
-      if (conversationsError) {
-        console.error('Error fetching conversations:', conversationsError)
-      } else {
-        setConversations(conversationsData || [])
-      }
-
+    if (productError) {
+      console.error('Error fetching product:', productError)
       setLoading(false)
+      return
     }
 
+    if (product) {
+      setProductName(product.name)
+    }
+
+    // Buscar conversas do projeto
+    const { data: conversationsData, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('id, title, created_at')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false })
+
+    if (conversationsError) {
+      console.error('Error fetching conversations:', conversationsError)
+    } else {
+      setConversations(conversationsData || [])
+    }
+
+    setLoading(false)
+  }, [productId])
+
+  useEffect(() => {
     if (productId) {
       loadProductAndConversations()
     }
-  }, [productId])
+  }, [productId, loadProductAndConversations])
+
+  // Atualizar lista quando a página receber foco (útil após deletar conversa no sidebar)
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && productId && !loading) {
+        loadProductAndConversations()
+      }
+    }
+
+    function handleFocus() {
+      if (productId && !loading) {
+        loadProductAndConversations()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [productId, loading, loadProductAndConversations])
 
   async function handleCreateConversation() {
     if (creatingConversation) return
