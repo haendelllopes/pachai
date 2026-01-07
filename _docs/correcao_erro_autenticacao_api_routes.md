@@ -9,14 +9,16 @@ O erro `AuthSessionMissingError: Auth session missing!` estava ocorrendo na rota
 
 ### Causa Raiz
 
-A função `createClientFromRequest()` estava sendo chamada sem passar o objeto `request` como parâmetro. Isso fazia com que os cookies de autenticação não fossem lidos corretamente do request, resultando em uma sessão de autenticação ausente.
+O erro ocorria porque os cookies de autenticação não estavam sendo lidos corretamente na rota da API. Em ambientes serverless como Vercel, pode haver dessincronia entre o middleware (que atualiza os cookies) e a rota da API (que precisa ler os cookies).
 
 ### Contexto Técnico
 
 Em rotas de API do Next.js, especialmente em ambientes serverless como Vercel, há uma diferença importante entre:
 
-1. **`cookies()` do `next/headers`**: Pode não estar sincronizado com o middleware em alguns casos
-2. **Cookies do `request` diretamente**: Garante que os cookies atualizados pelo middleware sejam lidos corretamente
+1. **`cookies()` do `next/headers`**: Sincronizado com o middleware, mas pode falhar em alguns contextos
+2. **Cookies do `request` diretamente**: Fallback confiável quando `cookies()` não está disponível
+
+A solução implementada usa uma abordagem híbrida: tenta `cookies()` primeiro (sincronizado com middleware) e faz fallback para `request.cookies` se necessário.
 
 ## Solução Implementada
 
@@ -25,17 +27,11 @@ Em rotas de API do Next.js, especialmente em ambientes serverless como Vercel, h
 **Arquivo:** `app/lib/supabase/server-api.ts`
 
 **Mudança:**
-- Antes: Função assíncrona que usava `cookies()` do `next/headers`
-- Depois: Função síncrona que recebe `NextRequest` e lê cookies diretamente do request
+- Antes: Função síncrona que lia cookies apenas do `request`
+- Depois: Função assíncrona que tenta `cookies()` primeiro (sincronizado com middleware) e faz fallback para `request.cookies`
 
 ```typescript
 // Antes
-export async function createClientFromRequest() {
-  const cookieStore = await cookies()
-  // ...
-}
-
-// Depois
 export function createClientFromRequest(request: NextRequest) {
   return createServerClient(
     // ...
@@ -43,6 +39,29 @@ export function createClientFromRequest(request: NextRequest) {
       cookies: {
         getAll() {
           return request.cookies.getAll()
+        },
+        // ...
+      },
+    }
+  )
+}
+
+// Depois
+export async function createClientFromRequest(request: NextRequest) {
+  const cookieStore = await cookies()
+  
+  return createServerClient(
+    // ...
+    {
+      cookies: {
+        getAll() {
+          // Tentar cookies() primeiro (sincronizado com middleware)
+          try {
+            return cookieStore.getAll()
+          } catch {
+            // Fallback para cookies do request
+            return request.cookies.getAll()
+          }
         },
         // ...
       },
@@ -57,21 +76,22 @@ export function createClientFromRequest(request: NextRequest) {
 
 **Mudança:**
 - Passar o objeto `request` para `createClientFromRequest()`
-- Remover `await` já que a função não é mais assíncrona
+- Usar `await` já que a função agora é assíncrona
 
 ```typescript
 // Antes
-const supabase = await createClientFromRequest()
+const supabase = createClientFromRequest(request)
 
 // Depois
-const supabase = createClientFromRequest(request)
+const supabase = await createClientFromRequest(request)
 ```
 
 ## Benefícios
 
-1. **Sincronização garantida**: Os cookies são lidos diretamente do request, garantindo que estejam sincronizados com o middleware
-2. **Melhor performance**: Função síncrona elimina overhead desnecessário
-3. **Mais confiável**: Funciona corretamente em ambientes serverless
+1. **Sincronização garantida**: Tenta usar `cookies()` primeiro, que está sincronizado com o middleware
+2. **Fallback robusto**: Se `cookies()` falhar, usa `request.cookies` como fallback
+3. **Mais confiável**: Funciona corretamente em ambientes serverless e diferentes contextos de execução
+4. **Compatibilidade**: Funciona tanto quando o middleware atualiza os cookies quanto em casos onde isso não acontece
 
 ## Rotas Afetadas
 
