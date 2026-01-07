@@ -16,9 +16,19 @@ export async function POST(request: Request) {
 
   const { conversationId, messages } = await request.json()
 
-  if (!conversationId || !messages || messages.length < 3) {
+  if (!conversationId || !messages) {
     return NextResponse.json(
-      { error: 'conversationId and at least 3 messages are required' },
+      { error: 'conversationId and messages are required' },
+      { status: 400 }
+    )
+  }
+
+  // Contar mensagens do usuário
+  const userMessages = messages.filter((m: any) => m.role === 'user')
+  
+  if (userMessages.length < 2) {
+    return NextResponse.json(
+      { error: 'At least 2 user messages are required' },
       { status: 400 }
     )
   }
@@ -34,21 +44,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   }
 
-  // Verificar se já tem título
-  if (conversation.title) {
+  // Verificar se título é null ou "Nova conversa" antes de gerar
+  if (conversation.title && conversation.title !== 'Nova conversa') {
     return NextResponse.json({ title: conversation.title })
   }
 
   // Gerar título baseado nas mensagens (heurística simples)
   // Pegar primeiras mensagens do usuário para criar título
-  const userMessages = messages
-    .filter((m: any) => m.role === 'user')
+  const userMessagesContent = userMessages
     .slice(0, 3)
     .map((m: any) => m.content)
     .join(' ')
 
   // Criar título simples baseado nas primeiras palavras
-  const words = userMessages.split(' ').slice(0, 8).join(' ')
+  const words = userMessagesContent.split(' ').slice(0, 8).join(' ')
   const title = words.length > 50 ? words.substring(0, 50) + '...' : words
 
   // Atualizar título da conversa

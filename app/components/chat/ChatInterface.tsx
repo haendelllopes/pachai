@@ -9,6 +9,7 @@ import AttachmentTrigger from './AttachmentTrigger'
 import AttachmentContextBar from './AttachmentContextBar'
 import { useAttachmentManager } from '@/app/hooks/useAttachmentManager'
 import { createClient } from '@/app/lib/supabase/client'
+import { useProducts } from '@/app/contexts/ProductsContext'
 
 interface Message {
   id: string
@@ -35,6 +36,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   
   // AttachmentManager isolado - gerencia upload e estado de anexos
   const { attachments, uploading, uploadFile, deleteAttachment, refreshAttachments } = useAttachmentManager(conversationId)
+  
+  // Contexto para atualização de título
+  const { generateAndUpdateConversationTitle } = useProducts()
   
   const MAX_HEIGHT = 160
 
@@ -76,7 +80,12 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     if (error) {
       console.error('Error fetching messages:', error)
     } else {
-      setMessages(data || [])
+      // Deduplicar mensagens por ID para garantir que não haja duplicatas
+      // Mesmo se houver duplicatas no banco, apenas uma aparecerá no estado
+      const uniqueMessages = Array.from(
+        new Map((data || []).map(msg => [msg.id, msg])).values()
+      )
+      setMessages(uniqueMessages)
     }
   }
 
@@ -108,27 +117,8 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       }
     })
 
-    // Save user message
-    const { data: userMessage, error: userError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role: 'user',
-        content: userContent,
-      })
-      .select()
-      .single()
-
-    if (userError) {
-      console.error('Error saving user message:', userError)
-      setLoading(false)
-      requestAnimationFrame(() => {
-        inputRef.current?.focus()
-      })
-      return
-    }
-
-    // Não inserir mensagem otimisticamente - backend é a única fonte de verdade
+    // A API /api/pachai é responsável por salvar a mensagem do usuário
+    // Não inserir mensagem aqui para evitar duplicação
     // A mensagem será buscada via fetchMessages() após a resposta da API
 
     // Generate Pachai response using API
@@ -161,7 +151,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       // A mensagem já foi salva pela API route, buscar atualizada
       await fetchMessages()
       
-      // Gerar título automaticamente após 5 mensagens
+      // Gerar título automaticamente após 2 mensagens do usuário
       // Verificar após buscar mensagens atualizadas
       const checkAndGenerateTitle = async () => {
         const supabase = createClient()
@@ -171,32 +161,24 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true })
         
-        if (currentMessages && currentMessages.length === 5) {
-          // Verificar se já tem título
+        if (!currentMessages) return
+        
+        // Contar mensagens do usuário (não total)
+        const userMessages = currentMessages.filter(m => m.role === 'user')
+        
+        // Verificar após 2 mensagens do usuário
+        if (userMessages.length >= 2) {
+          // Verificar se título é null ou "Nova conversa"
           const { data: conv } = await supabase
             .from('conversations')
             .select('title')
             .eq('id', conversationId)
             .single()
           
-          if (!conv?.title) {
+          if (!conv?.title || conv.title === 'Nova conversa') {
             try {
-              const titleResponse = await fetch('/api/conversations/generate-title', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                  conversationId,
-                  messages: currentMessages,
-                }),
-              })
-              
-              if (titleResponse.ok) {
-                // Título será atualizado no banco, refresh da página atualizará header
-                window.location.reload()
-              }
+              // Usar função do contexto em vez de reload
+              await generateAndUpdateConversationTitle(conversationId, productId, currentMessages)
             } catch (error) {
               console.error('Error generating conversation title:', error)
               // Não bloquear o fluxo se falhar

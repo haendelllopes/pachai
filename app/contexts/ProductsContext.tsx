@@ -23,6 +23,7 @@ interface ProductsContextType {
   addConversation: (productId: string, conversation: Conversation) => void
   updateProductName: (productId: string, newName: string) => Promise<void>
   updateConversationTitle: (conversationId: string, productId: string, newTitle: string) => Promise<void>
+  generateAndUpdateConversationTitle: (conversationId: string, productId: string, messages: any[]) => Promise<string | null>
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined)
@@ -157,6 +158,43 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const generateAndUpdateConversationTitle = useCallback(async (conversationId: string, productId: string, messages: any[]): Promise<string | null> => {
+    try {
+      // Chamar API de geração de título
+      const response = await fetch('/api/conversations/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversationId,
+          messages,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao gerar título da conversa')
+      }
+
+      const data = await response.json()
+      const generatedTitle = data.title
+
+      if (generatedTitle) {
+        // Atualizar estado local usando updateConversationTitle
+        await updateConversationTitle(conversationId, productId, generatedTitle)
+        return generatedTitle
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error generating conversation title:', error)
+      // Não bloquear o fluxo se falhar
+      return null
+    }
+  }, [updateConversationTitle])
+
   return (
     <ProductsContext.Provider
       value={{
@@ -168,6 +206,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         addConversation,
         updateProductName,
         updateConversationTitle,
+        generateAndUpdateConversationTitle,
       }}
     >
       {children}
