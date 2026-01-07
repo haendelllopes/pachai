@@ -1,22 +1,33 @@
-import { createClientFromRequest } from '@/app/lib/supabase/server-api'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Debug: verificar cookies recebidos
-  const allCookies = request.cookies.getAll()
-  const authCookies = allCookies.filter(c => 
-    c.name.includes('auth') || c.name.includes('supabase') || c.name.includes('sb-')
+  // Criar cliente Supabase diretamente na rota usando cookies()
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignorar se não conseguir (middleware já cuida disso)
+          }
+        },
+      },
+    }
   )
-  console.log('[PATCH] Cookies recebidos:', {
-    total: allCookies.length,
-    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
-  })
-  
-  // Criar cliente Supabase - usa cookies() do next/headers (idêntico às outras rotas)
-  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -24,11 +35,7 @@ export async function PATCH(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('[PATCH] Auth error:', {
-      error: userError,
-      cookiesReceived: allCookies.length,
-      authCookiesReceived: authCookies.length
-    })
+    console.error('[PATCH] Auth error:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -74,18 +81,28 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Debug: verificar cookies recebidos
-  const allCookies = request.cookies.getAll()
-  const authCookies = allCookies.filter(c => 
-    c.name.includes('auth') || c.name.includes('supabase') || c.name.includes('sb-')
+  // Criar cliente Supabase diretamente na rota usando cookies()
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignorar se não conseguir (middleware já cuida disso)
+          }
+        },
+      },
+    }
   )
-  console.log('[DELETE] Cookies recebidos:', {
-    total: allCookies.length,
-    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
-  })
-  
-  // Criar cliente Supabase - usa cookies() do next/headers (idêntico às outras rotas)
-  const supabase = await createClientFromRequest()
   
   const {
     data: { user },
@@ -93,11 +110,7 @@ export async function DELETE(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('[DELETE] Auth error:', {
-      error: userError,
-      cookiesReceived: allCookies.length,
-      authCookiesReceived: authCookies.length
-    })
+    console.error('[DELETE] Auth error:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
