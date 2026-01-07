@@ -121,7 +121,8 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       return
     }
 
-    setMessages(prev => [...prev, userMessage])
+    // Não inserir mensagem otimisticamente - backend é a única fonte de verdade
+    // A mensagem será buscada via fetchMessages() após a resposta da API
 
     // Generate Pachai response using API
     try {
@@ -209,7 +210,10 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       }
     } catch (error) {
       console.error('Error generating Pachai response:', error)
+      // Buscar mensagens do backend para garantir consistência mesmo em caso de erro
+      await fetchMessages()
       // Mostrar mensagem de erro ao usuário com linguagem humana e contextual
+      // Esta é uma mensagem temporária de erro, não persistida no backend
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'pachai',
