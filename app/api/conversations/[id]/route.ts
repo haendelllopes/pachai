@@ -5,6 +5,16 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Debug: verificar cookies recebidos
+  const allCookies = request.cookies.getAll()
+  const authCookies = allCookies.filter(c => 
+    c.name.includes('auth') || c.name.includes('supabase') || c.name.includes('sb-')
+  )
+  console.log('[PATCH] Cookies recebidos:', {
+    total: allCookies.length,
+    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
+  })
+  
   // Criar response para propagar cookies atualizados
   let response = NextResponse.next({ request })
   
@@ -17,7 +27,11 @@ export async function PATCH(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('Auth error in PATCH /api/conversations/[id]:', userError)
+    console.error('[PATCH] Auth error:', {
+      error: userError,
+      cookiesReceived: allCookies.length,
+      authCookiesReceived: authCookies.length
+    })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -66,6 +80,16 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Debug: verificar cookies recebidos
+  const allCookies = request.cookies.getAll()
+  const authCookies = allCookies.filter(c => 
+    c.name.includes('auth') || c.name.includes('supabase') || c.name.includes('sb-')
+  )
+  console.log('[DELETE] Cookies recebidos:', {
+    total: allCookies.length,
+    authCookies: authCookies.map(c => ({ name: c.name, hasValue: !!c.value, valueLength: c.value?.length || 0 }))
+  })
+  
   // Criar response para propagar cookies atualizados
   let response = NextResponse.next({ request })
   
@@ -78,7 +102,11 @@ export async function DELETE(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('Auth error in DELETE /api/conversations/[id]:', userError)
+    console.error('[DELETE] Auth error:', {
+      error: userError,
+      cookiesReceived: allCookies.length,
+      authCookiesReceived: authCookies.length
+    })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
