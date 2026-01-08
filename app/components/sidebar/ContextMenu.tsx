@@ -40,7 +40,7 @@ export default function ContextMenu({ items, onClose, x, y }: ContextMenuProps) 
         borderRadius: '6px',
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)', // Sombra mais forte para destacar
         overflow: 'hidden',
-        minWidth: '160px',
+        minWidth: '140px', // Reduzido de 160px para 140px
         zIndex: 10000, // Z-index muito alto para garantir que fique acima de tudo
         isolation: 'isolate', // Cria novo contexto de empilhamento
         opacity: 1, // Garantir opacidade total
@@ -58,12 +58,12 @@ export default function ContextMenu({ items, onClose, x, y }: ContextMenuProps) 
           }}
           style={{
             width: '100%',
-            padding: '0.5rem 1rem',
+            padding: '0.375rem 0.75rem', // Reduzido de 0.5rem 1rem para 0.375rem 0.75rem
             background: 'transparent',
             border: 'none',
             textAlign: 'left',
             cursor: 'pointer',
-            fontSize: '0.875rem',
+            fontSize: '0.8125rem', // Reduzido de 0.875rem para 0.8125rem (13px)
             color: item.danger ? '#d32f2f' : 'var(--text-main)',
             transition: 'background 0.2s',
             borderTop: index > 0 ? '1px solid var(--border-subtle)' : 'none',
