@@ -11,17 +11,26 @@ import { SearchResult } from './search-types'
  */
 export async function executeExternalSearch(query: string): Promise<SearchResult[]> {
   if (!query || query.trim().length === 0) {
+    console.log('[Search] Empty query provided')
     return []
   }
+
+  console.log('[Search] Executing search for query:', query)
+  console.log('[Search] TAVILY_API_KEY exists:', !!process.env.TAVILY_API_KEY)
 
   // Tentar Tavily primeiro (API moderna e fácil de usar)
   if (process.env.TAVILY_API_KEY) {
     try {
-      return await executeTavilySearch(query)
+      console.log('[Search] Attempting Tavily search...')
+      const results = await executeTavilySearch(query)
+      console.log('[Search] Tavily search successful, results:', results.length)
+      return results
     } catch (error) {
-      console.error('Tavily search failed:', error)
+      console.error('[Search] Tavily search failed:', error)
       // Fallback para Bing se Tavily falhar
     }
+  } else {
+    console.warn('[Search] TAVILY_API_KEY not found in environment')
   }
 
   // Tentar Bing como alternativa ou fallback

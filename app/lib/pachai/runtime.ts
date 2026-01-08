@@ -418,13 +418,17 @@ export async function getPachaiResponse({
   if (!searchContext && conversation.status !== 'PAUSED') {
     const explicitIntent = detectExplicitSearchIntent(userMessage)
     if (explicitIntent) {
+      console.log('[Search] Intent detected:', explicitIntent.query)
       // Executar busca explícita
       const results = await executeExternalSearch(explicitIntent.query)
+      console.log('[Search] Results count:', results.length)
       searchContext = {
         query: explicitIntent.query,
         results,
         executedAt: new Date().toISOString()
       }
+    } else {
+      console.log('[Search] No explicit intent detected for:', userMessage)
     }
   }
 

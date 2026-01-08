@@ -13,7 +13,13 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
   const message = userMessage.toLowerCase().trim()
   
   // Padrões explícitos de busca (alta precisão)
+  // Adicionar mais variações para melhorar detecção
   const explicitPatterns = [
+    // Padrão mais simples primeiro (mais comum)
+    {
+      pattern: /pesquise\s+(?:sobre|de|em)?\s*(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
     {
       pattern: /^pesquise\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
@@ -23,11 +29,23 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
     {
+      pattern: /busque\s+referências?\s+(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
       pattern: /^procure\s+exemplos?\s+(?:de|sobre)\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
     {
+      pattern: /procure\s+exemplos?\s+(?:de|sobre)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
       pattern: /^encontre\s+estudos?\s+(?:sobre|de)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
+      pattern: /encontre\s+estudos?\s+(?:sobre|de)\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
     {
@@ -36,6 +54,10 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
     },
     {
       pattern: /^busque\s+(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
+      pattern: /busque\s+(?:sobre|de|em)\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     }
   ]
@@ -46,6 +68,7 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
       const query = extractQuery(match)
       // Validar que a query não está vazia e tem conteúdo mínimo
       if (query && query.length >= 3) {
+        console.log('[Search Detection] Pattern matched:', pattern.toString(), 'Query extracted:', query)
         return {
           query,
           confidence: 1.0 // Alta confiança para padrões explícitos
@@ -56,6 +79,7 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
 
   // Se não encontrou padrão explícito, retornar null
   // Regra: se houver dúvida → não buscar
+  console.log('[Search Detection] No pattern matched for:', userMessage)
   return null
 }
 
