@@ -835,14 +835,10 @@ export default function ProductsSidebar() {
 
       {/* Context Menu */}
       {contextMenu && (
-        <div style={{
-          position: 'fixed',
-          left: contextMenu.x,
-          top: contextMenu.y,
-          zIndex: 10000, // Aumentar para corresponder ao z-index do ContextMenu
-        }}>
-          <ContextMenu
-            items={[
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={[
               {
                 label: contextMenu.type === 'product' ? 'Renomear projeto' : 'Renomear conversa',
                 onClick: () => {
@@ -874,7 +870,6 @@ export default function ProductsSidebar() {
             ]}
             onClose={() => setContextMenu(null)}
           />
-        </div>
       )}
 
       {/* Delete Confirmation Modal */}
