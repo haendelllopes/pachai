@@ -15,6 +15,19 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
   // Padrões explícitos de busca (alta precisão)
   // Adicionar mais variações para melhorar detecção
   const explicitPatterns = [
+    // Padrões para perguntas sobre capacidade de busca (ex: "consegue buscar externamente dados sobre X?")
+    {
+      pattern: /(?:consegue|pode|você|vc)\s+buscar\s+(?:externamente|externos?|dados?|informações?|referências?)?\s*(?:sobre|de|em|dados?)?\s*(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].replace(/[?\.!]$/, '').trim()
+    },
+    {
+      pattern: /(?:consegue|pode|você|vc)\s+pesquisar\s+(?:externamente|externos?|dados?|informações?|referências?)?\s*(?:sobre|de|em|dados?)?\s*(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].replace(/[?\.!]$/, '').trim()
+    },
+    {
+      pattern: /buscar\s+(?:externamente|externos?|dados?|informações?|referências?)?\s*(?:sobre|de|em|dados?)?\s*(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].replace(/[?\.!]$/, '').trim()
+    },
     // Padrão mais simples primeiro (mais comum)
     {
       pattern: /pesquise\s+(?:sobre|de|em)?\s*(.+)/i,
