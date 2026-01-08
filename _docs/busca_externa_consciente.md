@@ -139,9 +139,11 @@ E nunca em:
 
 ## Execução de Busca
 
-A busca externa é executada via API (Tavily ou Bing):
+A busca externa é executada via API com fallback automático:
 
-- Suporta Tavily (preferencial) e Bing (fallback)
+- **Google Custom Search** (principal) - resultados do Google
+- **Tavily** (alternativa) - otimizado para IA
+- **Bing Search** (fallback) - alternativa da Microsoft
 - Trata erros graciosamente (retorna array vazio se falhar)
 - Limita resultados a 5 para não sobrecarregar contexto
 - Nunca persiste resultados
@@ -222,7 +224,8 @@ Essa escolha impacta como você estrutura o fluxo inicial."
 ## Limitações e Restrições
 
 1. **Busca requer API externa configurada**
-   - Variáveis de ambiente: `TAVILY_API_KEY` ou `BING_SEARCH_API_KEY` + `BING_SEARCH_ENDPOINT`
+   - Variáveis de ambiente: `GOOGLE_SEARCH_API_KEY` + `GOOGLE_CSE_ID` (principal)
+   - Alternativas: `TAVILY_API_KEY` ou `BING_SEARCH_API_KEY` + `BING_SEARCH_ENDPOINT`
 
 2. **Resultados são temporários**
    - Não persistem entre conversas
@@ -283,9 +286,18 @@ Se qualquer resposta for "não", o comportamento está errado e precisa ser ajus
 ## Variáveis de Ambiente
 
 ```env
-# API de Busca Externa (escolher uma)
+# API de Busca Externa (Google como principal)
+GOOGLE_SEARCH_API_KEY=...
+GOOGLE_CSE_ID=...
+
+# Alternativas (fallback automático)
 TAVILY_API_KEY=...
 # ou
 BING_SEARCH_API_KEY=...
 BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 ```
+
+**Ordem de tentativas:**
+1. Google Custom Search (se configurado)
+2. Tavily (se Google falhar ou não estiver configurado)
+3. Bing (se ambas falharem ou não estiverem configuradas)

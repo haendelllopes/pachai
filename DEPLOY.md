@@ -37,12 +37,16 @@ NEXT_PUBLIC_SUPABASE_URL=https://ybosgihyhwkogodwobeb.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlib3NnaWh5aHdrb2dvZHdvYmViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4OTEzNTQsImV4cCI6MjA3ODQ2NzM1NH0.gPwNEx_dluHVzwfZTPsXyctIx53D0tI3_4VwdC_9onU
 NEXT_PUBLIC_SITE_URL=https://seu-dominio.vercel.app
 OPENAI_API_KEY=<sua_chave_openai>
+GOOGLE_SEARCH_API_KEY=AIzaSyAQpWYjiV8YjyTSpfKx3zLngxoI9kV3yI4
+GOOGLE_CSE_ID=f42273c8c94dd4455
 TAVILY_API_KEY=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
 ```
 
 **IMPORTANTE:** 
 - Substitua `https://seu-dominio.vercel.app` pela URL real que o Vercel gerar após o deploy.
 - Substitua `<sua_chave_openai>` pela sua chave da API da OpenAI.
+- `GOOGLE_SEARCH_API_KEY` e `GOOGLE_CSE_ID` estão configurados para busca externa (Google como principal).
+- `TAVILY_API_KEY` está configurada como alternativa de busca externa.
 - Configure para todos os ambientes (Production, Preview, Development) ou apenas Production conforme sua necessidade.
 
 ### 4. Redeploy
@@ -76,6 +80,8 @@ Ou redeploy pelo dashboard do Vercel (clique em "Redeploy" na última deployment
   - [ ] NEXT_PUBLIC_SUPABASE_ANON_KEY
   - [ ] NEXT_PUBLIC_SITE_URL
   - [ ] OPENAI_API_KEY
+  - [ ] GOOGLE_SEARCH_API_KEY
+  - [ ] GOOGLE_CSE_ID
   - [ ] TAVILY_API_KEY
 - [ ] Login funciona
 - [ ] Chat funciona

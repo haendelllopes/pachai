@@ -24,13 +24,16 @@ NEXT_PUBLIC_SUPABASE_URL=https://aznkixldjikctoruonuo.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_chave_anon_do_projeto>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 OPENAI_API_KEY=<sua_chave_openai>
+GOOGLE_SEARCH_API_KEY=AIzaSyAQpWYjiV8YjyTSpfKx3zLngxoI9kV3yI4
+GOOGLE_CSE_ID=f42273c8c94dd4455
 TAVILY_API_KEY=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
 ```
 
 **Notas:**
 - Substitua `<sua_chave_anon_do_projeto>` pela chave anon do projeto (encontre em Settings → API → Project API keys).
 - Substitua `<sua_chave_openai>` pela sua chave da API da OpenAI (obtenha em https://platform.openai.com/api-keys).
-- A `TAVILY_API_KEY` está configurada para busca externa consciente.
+- `GOOGLE_SEARCH_API_KEY` e `GOOGLE_CSE_ID` estão configurados para busca externa (Google como principal).
+- `TAVILY_API_KEY` está configurada como alternativa de busca externa.
 
 3. ✅ Banco de dados configurado!
    - Migration `001_initial_schema` já foi aplicada

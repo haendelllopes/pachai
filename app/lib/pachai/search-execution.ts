@@ -16,9 +16,23 @@ export async function executeExternalSearch(query: string): Promise<SearchResult
   }
 
   console.log('[Search] Executing search for query:', query)
+  console.log('[Search] GOOGLE_SEARCH_API_KEY exists:', !!process.env.GOOGLE_SEARCH_API_KEY)
   console.log('[Search] TAVILY_API_KEY exists:', !!process.env.TAVILY_API_KEY)
 
-  // Tentar Tavily primeiro (API moderna e fácil de usar)
+  // Tentar Google Custom Search primeiro (principal)
+  if (process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_CSE_ID) {
+    try {
+      console.log('[Search] Attempting Google search...')
+      const results = await executeGoogleSearch(query)
+      console.log('[Search] Google search successful, results:', results.length)
+      return results
+    } catch (error) {
+      console.error('[Search] Google search failed:', error)
+      // Fallback para Tavily se Google falhar
+    }
+  }
+
+  // Tentar Tavily como alternativa
   if (process.env.TAVILY_API_KEY) {
     try {
       console.log('[Search] Attempting Tavily search...')
@@ -29,11 +43,9 @@ export async function executeExternalSearch(query: string): Promise<SearchResult
       console.error('[Search] Tavily search failed:', error)
       // Fallback para Bing se Tavily falhar
     }
-  } else {
-    console.warn('[Search] TAVILY_API_KEY not found in environment')
   }
 
-  // Tentar Bing como alternativa ou fallback
+  // Tentar Bing como último fallback
   if (process.env.BING_SEARCH_API_KEY && process.env.BING_SEARCH_ENDPOINT) {
     try {
       return await executeBingSearch(query)
@@ -42,10 +54,44 @@ export async function executeExternalSearch(query: string): Promise<SearchResult
     }
   }
 
-  // Se nenhuma API estiver configurada ou ambas falharem, retornar array vazio
+  // Se nenhuma API estiver configurada ou todas falharem, retornar array vazio
   // Tratamento gracioso: não quebrar o fluxo se busca falhar
   console.warn('No search API configured or all APIs failed')
   return []
+}
+
+/**
+ * Executa busca usando Google Custom Search API
+ */
+async function executeGoogleSearch(query: string): Promise<SearchResult[]> {
+  const apiKey = process.env.GOOGLE_SEARCH_API_KEY
+  const cseId = process.env.GOOGLE_CSE_ID
+  
+  if (!apiKey || !cseId) {
+    throw new Error('Google Search API not configured')
+  }
+
+  const response = await fetch(
+    `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(query)}&num=5`
+  )
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(`Google API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+  }
+
+  const data = await response.json()
+
+  if (!data.items || !Array.isArray(data.items)) {
+    return []
+  }
+
+  return data.items.map((item: any) => ({
+    title: item.title || 'Sem título',
+    snippet: item.snippet || '',
+    source: item.displayLink || (item.link ? new URL(item.link).hostname : 'Fonte desconhecida'),
+    url: item.link || '',
+  }))
 }
 
 /**
