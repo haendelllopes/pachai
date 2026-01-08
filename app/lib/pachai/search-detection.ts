@@ -38,6 +38,14 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
     {
+      pattern: /^busque\s+(?:dados?|informações?)\s+(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
+      pattern: /busque\s+(?:dados?|informações?)\s+(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
       pattern: /^busque\s+referências?\s+(?:sobre|de|em)\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
@@ -63,6 +71,14 @@ export function detectExplicitSearchIntent(userMessage: string): SearchIntent | 
     },
     {
       pattern: /^pesquise\s+referências?\s+(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
+      pattern: /^busque\s+(?:dados?|informações?|referências?|exemplos?)?\s*(?:sobre|de|em)\s+(.+)/i,
+      extractQuery: (match: RegExpMatchArray) => match[1].trim()
+    },
+    {
+      pattern: /busque\s+(?:dados?|informações?|referências?|exemplos?)?\s*(?:sobre|de|em)\s+(.+)/i,
       extractQuery: (match: RegExpMatchArray) => match[1].trim()
     },
     {
