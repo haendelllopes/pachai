@@ -9,15 +9,13 @@ export async function PATCH(
   // Usar createRouteHandlerClient para Route Handlers (App Router + PWA)
   const supabase = await createRouteHandlerClient({ cookies })
   
-  // Usar getSession() em vez de getUser() para App Router + PWA
-  const { data: { session } } = await supabase.auth.getSession()
+  // Usar getUser() para autenticação segura (valida com servidor Supabase)
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   
-  if (!session?.user) {
-    console.error('[PATCH] No session found')
+  if (authError || !user) {
+    console.error('[PATCH] Authentication error:', authError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
-  const user = session.user
 
   const { title } = await request.json()
 
@@ -64,15 +62,13 @@ export async function DELETE(
   // Usar createRouteHandlerClient para Route Handlers (App Router + PWA)
   const supabase = await createRouteHandlerClient({ cookies })
   
-  // Usar getSession() em vez de getUser() para App Router + PWA
-  const { data: { session } } = await supabase.auth.getSession()
+  // Usar getUser() para autenticação segura (valida com servidor Supabase)
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   
-  if (!session?.user) {
-    console.error('[DELETE] No session found')
+  if (authError || !user) {
+    console.error('[DELETE] Authentication error:', authError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
-  const user = session.user
 
   // Verificar se a conversa pertence ao usuário (via produto)
   const { data: conversation } = await supabase
@@ -92,16 +88,26 @@ export async function DELETE(
   }
 
   // Exclusão em cascata: primeiro excluir vereditos relacionados
-  await supabase
+  const { error: veredictsError } = await supabase
     .from('veredicts')
     .delete()
     .eq('conversation_id', params.id)
 
+  if (veredictsError) {
+    console.error('[DELETE] Error deleting veredicts:', veredictsError)
+    return NextResponse.json({ error: 'Failed to delete veredicts: ' + veredictsError.message }, { status: 500 })
+  }
+
   // Excluir mensagens
-  await supabase
+  const { error: messagesError } = await supabase
     .from('messages')
     .delete()
     .eq('conversation_id', params.id)
+
+  if (messagesError) {
+    console.error('[DELETE] Error deleting messages:', messagesError)
+    return NextResponse.json({ error: 'Failed to delete messages: ' + messagesError.message }, { status: 500 })
+  }
 
   // Excluir conversa
   const { error } = await supabase
@@ -110,7 +116,8 @@ export async function DELETE(
     .eq('id', params.id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[DELETE] Error deleting conversation:', error)
+    return NextResponse.json({ error: 'Failed to delete conversation: ' + error.message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
