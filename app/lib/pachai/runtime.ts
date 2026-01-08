@@ -16,6 +16,7 @@ import { SearchContext, SearchResult } from './search-types'
 import { Message } from './agent'
 import OpenAI from 'openai'
 import { createClient } from '@/app/lib/supabase/server'
+import { applyFoundationalVeredicts, GovernanceInput } from './foundational-governance'
 
 type PachaiRuntimeInput = {
   conversationId: string
@@ -432,7 +433,21 @@ export async function getPachaiResponse({
     }
   }
 
-  // 3. Inferir estado apenas se conversa não estiver pausada
+  // 3. Aplicar governança: pre_state (antes de inferir estado)
+  const preStateGovernance = await applyFoundationalVeredicts('pre_state', {
+    conversationId,
+    userMessage,
+    messages: history
+  })
+
+  if (!preStateGovernance.allowed) {
+    // Violação bloqueada - retornar erro
+    return {
+      response: 'Não foi possível processar sua mensagem devido a uma violação de regra fundamental do sistema.'
+    }
+  }
+
+  // 3.1. Inferir estado apenas se conversa não estiver pausada
   // Se estiver pausada, não inferir (reabertura tem prioridade máxima)
   let inferredState: StateEnum = StateEnum.EXPLORATION
   let conversationSummary: string | undefined
@@ -514,8 +529,24 @@ export async function getPachaiResponse({
     }
   }
 
-  // 8. Obter prompt usando função centralizada
-  const { prompt: basePrompt, maxHistoryMessages } = getPromptForConversationState({
+  // 8. Aplicar governança: pre_prompt (antes de selecionar prompt)
+  const prePromptGovernance = await applyFoundationalVeredicts('pre_prompt', {
+    conversationId,
+    userMessage,
+    messages: history,
+    state: inferredState,
+    searchContext
+  })
+
+  if (!prePromptGovernance.allowed) {
+    // Violação bloqueada - retornar erro
+    return {
+      response: 'Não foi possível processar sua mensagem devido a uma violação de regra fundamental do sistema.'
+    }
+  }
+
+  // 8.1. Obter prompt usando função centralizada
+  let { prompt: basePrompt, maxHistoryMessages } = getPromptForConversationState({
     conversationStatus: conversation.status as ConversationStatus,
     inferredState,
     pauseRequested,
@@ -526,14 +557,54 @@ export async function getPachaiResponse({
     shouldSuggestSearch: shouldSuggest
   })
 
-  // 9. Construir contexto ordenado e adicionar ao prompt
-  const contextString = buildContextString(
-    productContext,
+  // 8.2. Aplicar modificações do prompt se houver violações corrigidas
+  if (prePromptGovernance.modifiedInput?.prompt) {
+    basePrompt = prePromptGovernance.modifiedInput.prompt
+  }
+
+  // 8.3. Injetar seção de vereditos fundadores (reforço semântico)
+  if (prePromptGovernance.injectedPromptSection) {
+    basePrompt = prePromptGovernance.injectedPromptSection + '\n\n' + basePrompt
+  }
+
+  // 9. Aplicar governança: pre_context (antes de construir contexto)
+  const preContextGovernance = await applyFoundationalVeredicts('pre_context', {
+    conversationId,
+    userMessage,
+    messages: history,
     searchContext,
+    productContext
+  })
+
+  if (!preContextGovernance.allowed) {
+    // Violação bloqueada - retornar erro
+    return {
+      response: 'Não foi possível processar sua mensagem devido a uma violação de regra fundamental do sistema.'
+    }
+  }
+
+  // 9.1. Aplicar modificações do contexto se houver violações corrigidas
+  let finalSearchContext = searchContext
+  let finalProductContext = productContext
+  
+  if (preContextGovernance.modifiedInput) {
+    if (preContextGovernance.modifiedInput.searchContext !== undefined) {
+      finalSearchContext = preContextGovernance.modifiedInput.searchContext || null
+    }
+    if (preContextGovernance.modifiedInput.productContext !== undefined) {
+      finalProductContext = preContextGovernance.modifiedInput.productContext || null
+    }
+  }
+
+  // 9.2. Construir contexto ordenado e adicionar ao prompt
+  // MEMORY_SHARING: garantir que apenas mensagens desta conversa são incluídas
+  const contextString = buildContextString(
+    finalProductContext,
+    finalSearchContext,
     veredictsGlobal,
     veredictsProduct,
     attachments,
-    history
+    history // history já contém apenas mensagens desta conversa
   )
   const systemPrompt = basePrompt + contextString
 
@@ -545,9 +616,29 @@ export async function getPachaiResponse({
     maxHistoryMessages
   })
 
-  // 11. Retornar resposta com flag de sugestão de busca e resultados se necessário
-  const output: PachaiRuntimeOutput = {
+  // 11. Aplicar governança: post_response (validar resposta final)
+  const postResponseGovernance = await applyFoundationalVeredicts('post_response', {
+    conversationId,
+    userMessage,
+    messages: history,
     response
+  })
+
+  // Logar violações mesmo se não bloquearem (para auditoria)
+  if (postResponseGovernance.violations.length > 0) {
+    console.warn('[Governance] Violations detected in response:', postResponseGovernance.violations)
+  }
+
+  // Se violação crítica bloqueada, retornar resposta alternativa
+  let finalResponse = response
+  if (!postResponseGovernance.allowed) {
+    // Resposta violou veredito crítico - retornar resposta genérica segura
+    finalResponse = 'Entendi. Como posso ajudar você a avançar?'
+  }
+
+  // 12. Retornar resposta com flag de sugestão de busca e resultados se necessário
+  const output: PachaiRuntimeOutput = {
+    response: finalResponse
   }
 
   if (shouldSuggest && suggestSearchQuery) {

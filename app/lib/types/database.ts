@@ -209,6 +209,73 @@ export interface Database {
           created_by?: string
         }
       }
+      global_veredicts: {
+        Row: {
+          id: string
+          code: string
+          title: string
+          rule_text: string
+          enforcement_scope: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          priority: number
+          is_active: boolean
+          version: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          title: string
+          rule_text: string
+          enforcement_scope: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          priority: number
+          is_active?: boolean
+          version?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          title?: string
+          rule_text?: string
+          enforcement_scope?: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          priority?: number
+          is_active?: boolean
+          version?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      veredict_audit: {
+        Row: {
+          id: string
+          veredict_code: string
+          phase: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          conversation_id: string | null
+          detected_at: string
+          details: Json | null
+          was_blocked: boolean
+        }
+        Insert: {
+          id?: string
+          veredict_code: string
+          phase: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          conversation_id?: string | null
+          detected_at?: string
+          details?: Json | null
+          was_blocked?: boolean
+        }
+        Update: {
+          id?: string
+          veredict_code?: string
+          phase?: 'pre_state' | 'pre_prompt' | 'pre_context' | 'post_response'
+          conversation_id?: string | null
+          detected_at?: string
+          details?: Json | null
+          was_blocked?: boolean
+        }
+      }
     }
   }
 }
