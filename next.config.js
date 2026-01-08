@@ -3,13 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   // PWA support
   swcMinify: true,
-  // Exclude Supabase Edge Functions from build
-  webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /supabase\/functions\/.*\.ts$/,
-      use: 'ignore-loader',
-    })
-    return config
+  // Exclude Supabase Edge Functions from type checking
+  typescript: {
+    ignoreBuildErrors: false,
   },
   async headers() {
     return [
