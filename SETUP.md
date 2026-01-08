@@ -13,8 +13,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://aznkixldjikctoruonuo.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_chave_anon_do_projeto>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 OPENAI_API_KEY=<sua_chave_openai>
-GOOGLE_SEARCH_API_KEY=AIzaSyAQpWYjiV8YjyTSpfKx3zLngxoI9kV3yI4
-GOOGLE_CSE_ID=f42273c8c94dd4455
+GOOGLE_SEARCH_API_KEY=<sua_chave_google_api>
+GOOGLE_CSE_ID=<seu_cse_id>
 TAVILY_API_KEY=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
 ```
 
