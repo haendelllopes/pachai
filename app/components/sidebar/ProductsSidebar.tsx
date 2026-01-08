@@ -773,7 +773,7 @@ export default function ProductsSidebar() {
                             )}
                           </div>
                         )
-                      }))}
+                      })}
                       </div>
                     )
                   })()}
