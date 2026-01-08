@@ -44,7 +44,7 @@ export default function LandingPage() {
             margin: '0 auto 1rem',
           }}
         >
-          Um espaço para escutar antes de decidir
+          Um espaço para pensar produtos com rigor
         </h1>
 
         <p
@@ -58,7 +58,7 @@ export default function LandingPage() {
             margin: '0 auto',
           }}
         >
-          O Pachai não entrega respostas. Ele sustenta o processo até a clareza surgir.
+          O Pachai é uma plataforma de conversação contínua para Product Leaders amadurecerem decisões complexas, registrarem vereditos e manterem o entendimento do produto vivo ao longo do tempo.
         </p>
 
         <Image
@@ -96,9 +96,31 @@ export default function LandingPage() {
             fontWeight: 300,
           }}
         >
-          O Pachai é um espaço de escuta contínua.
-          Ele não decide por você, não acelera conclusões
-          e não transforma reflexão em checklist.
+          O Pachai não é um chat genérico.
+          Não é um assistente que entrega respostas.
+          Não é documentação automática.
+        </p>
+
+        <p
+          style={{
+            marginBottom: '1rem',
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          Ele existe para sustentar decisões difíceis.
+        </p>
+
+        <p
+          style={{
+            marginBottom: '1rem',
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          Você traz o problema como ele é.
+          O Pachai reage ao que é dito, tensiona implicações, aponta riscos e alternativas.
+          O veredito só existe quando você o reconhece explicitamente.
         </p>
 
         <p
@@ -107,8 +129,9 @@ export default function LandingPage() {
             fontWeight: 300,
           }}
         >
-          Ele sustenta perguntas até que o veredito
-          seja realmente seu.
+          Nada é inferido.
+          Nada é decidido automaticamente.
+          O pensamento continua sendo humano.
         </p>
       </section>
 
@@ -131,15 +154,15 @@ export default function LandingPage() {
         />
       </div>
 
-      {/* Como Funciona */}
+      {/* Princípios Fundamentais */}
       <section
-        className="how-it-works"
+        className="principles"
         style={{
           maxWidth: '640px',
           margin: '0 auto',
-          padding: '0 1.5rem 1.5rem',
+          padding: '0 1.5rem 2rem',
         }}
-        aria-label="Como funciona"
+        aria-label="Princípios fundamentais"
       >
         <ul
           style={{
@@ -157,7 +180,7 @@ export default function LandingPage() {
               fontWeight: 300,
             }}
           >
-            Você traz o que está em aberto.
+            • Conversas são privadas e isoladas.
           </li>
           <li
             style={{
@@ -168,7 +191,7 @@ export default function LandingPage() {
               fontWeight: 300,
             }}
           >
-            O Pachai sustenta a conversa com cuidado.
+            • Decisões são registradas como vereditos explícitos.
           </li>
           <li
             style={{
@@ -179,9 +202,207 @@ export default function LandingPage() {
               fontWeight: 300,
             }}
           >
-            O veredito só existe quando você o reconhece.
+            • O contexto do produto é um artefato vivo, não histórico de chat.
+          </li>
+          <li
+            style={{
+              marginBottom: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+              fontWeight: 300,
+            }}
+          >
+            • O agente reage a atos de fala, não faz perguntas por reflexo.
+          </li>
+          <li
+            style={{
+              marginBottom: '1rem',
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+              fontWeight: 300,
+            }}
+          >
+            • Encerramentos são reconhecidos, não explorados.
           </li>
         </ul>
+      </section>
+
+      {/* Como Funciona */}
+      <section
+        className="how-it-works"
+        style={{
+          maxWidth: '640px',
+          margin: '0 auto',
+          padding: '0 1.5rem 2rem',
+        }}
+        aria-label="Como funciona"
+      >
+        <h2
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: 400,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: '1rem',
+            color: 'var(--landing-text, oklch(0.25 0.03 45))',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Como o Pachai funciona
+        </h2>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginBottom: '1rem',
+          }}
+        >
+          Cada produto possui seu próprio espaço de pensamento.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginBottom: '1rem',
+          }}
+        >
+          As conversas servem para amadurecer decisões específicas.
+          Os vereditos registram aquilo que foi decidido de forma consciente.
+          O contexto cognitivo do produto evolui explicitamente ao longo do tempo.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          Nada se perde.
+          Nada é assumido.
+          Tudo pode ser retomado.
+        </p>
+      </section>
+
+      {/* Contexto Cognitivo do Produto */}
+      <section
+        className="product-context"
+        style={{
+          maxWidth: '640px',
+          margin: '0 auto',
+          padding: '0 1.5rem 2rem',
+        }}
+        aria-label="Contexto cognitivo do produto"
+      >
+        <h2
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: 400,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: '1rem',
+            color: 'var(--landing-text, oklch(0.25 0.03 45))',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Contexto cognitivo do produto
+        </h2>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          O Pachai mantém um entendimento consolidado e compartilhável sobre o produto.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginTop: '1rem',
+          }}
+        >
+          Não é conversa.
+          Não é anexo.
+          Não é histórico.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginTop: '1rem',
+          }}
+        >
+          É a base cognitiva que elimina a necessidade de recontextualizar tudo a cada nova conversa — inclusive quando outra pessoa entra no produto.
+        </p>
+      </section>
+
+      {/* Busca Externa Consciente */}
+      <section
+        className="external-search"
+        style={{
+          maxWidth: '640px',
+          margin: '0 auto',
+          padding: '0 1.5rem 2rem',
+        }}
+        aria-label="Busca externa consciente"
+      >
+        <h2
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: 400,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            marginBottom: '1rem',
+            color: 'var(--landing-text, oklch(0.25 0.03 45))',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Busca externa consciente
+        </h2>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+          }}
+        >
+          Quando necessário, referências externas podem ser consultadas.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginTop: '1rem',
+          }}
+        >
+          Sempre de forma explícita.
+          Sempre temporária.
+          Sempre como insumo de raciocínio — nunca como verdade automática.
+        </p>
+        <p
+          style={{
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+            fontWeight: 300,
+            marginTop: '1rem',
+          }}
+        >
+          O produto vem antes do mundo externo.
+        </p>
       </section>
 
       {/* Footer */}
@@ -189,13 +410,24 @@ export default function LandingPage() {
         className="footer"
         style={{
           textAlign: 'center',
-          padding: '2rem 1rem',
-          fontSize: '0.85rem',
-          opacity: 0.6,
+          padding: '2rem 1.5rem',
+          fontSize: '1rem',
+          lineHeight: 1.6,
+          opacity: 0.9,
           color: 'var(--landing-text-light, oklch(0.45 0.02 50))',
+          fontWeight: 300,
+          maxWidth: '640px',
+          margin: '0 auto',
         }}
       >
-        <span>Pachai — Espaço de Escuta Contínua</span>
+        <p style={{ margin: 0 }}>
+          O Pachai existe para sustentar decisões conscientes.
+        </p>
+        <p style={{ margin: '1rem 0 0 0' }}>
+          Nada é inferido.
+          Nada é automático.
+          O entendimento evolui com intenção.
+        </p>
       </footer>
     </>
   )
