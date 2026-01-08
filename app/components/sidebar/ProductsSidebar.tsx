@@ -495,6 +495,8 @@ export default function ProductsSidebar() {
               const isProductPage = pathname === `/products/${product.id}`
               const isConversationPage = pathname?.startsWith(`/products/${product.id}/conversations/`)
               const isActive = isProductPage || isConversationPage
+              const userRole = productRoles[product.id]
+              const isViewer = userRole === 'viewer'
 
               const isEditingProduct = editingItem?.type === 'product' && editingItem.id === product.id
 
@@ -616,31 +618,23 @@ export default function ProductsSidebar() {
                   </div>
 
                   {/* Conversations List */}
-                  {!collapsed && isExpanded && (() => {
-                    const userRole = productRoles[product.id]
-                    const isViewer = userRole === 'viewer'
-                    
-                    // Se for viewer, não mostrar conversas
-                    if (isViewer) {
-                      return (
-                        <div
-                          style={{
-                            marginLeft: '12px',
-                            marginTop: '4px',
-                            marginBottom: '8px',
-                            padding: '8px',
-                            fontSize: '0.75rem',
-                            color: 'var(--text-muted)',
-                            opacity: 0.6,
-                            fontStyle: 'italic',
-                          }}
-                        >
-                          Você tem acesso apenas ao contexto e vereditos deste produto. Conversas são privadas.
-                        </div>
-                      )
-                    }
-                    
-                    return (
+                  {!collapsed && isExpanded && (
+                    isViewer ? (
+                      <div
+                        style={{
+                          marginLeft: '12px',
+                          marginTop: '4px',
+                          marginBottom: '8px',
+                          padding: '8px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          opacity: 0.6,
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        Você tem acesso apenas ao contexto e vereditos deste produto. Conversas são privadas.
+                      </div>
+                    ) : (
                       <div
                         className="conversation-list"
                         style={{
@@ -661,122 +655,122 @@ export default function ProductsSidebar() {
                           </div>
                         ) : (
                           conversations.map((conversation) => {
-                        const isConvActive = pathname === `/products/${product.id}/conversations/${conversation.id}`
-                        const isEditingConv = editingItem?.type === 'conversation' && editingItem.id === conversation.id
-                        const convTitle = conversation.title || 'Nova conversa'
+                            const isConvActive = pathname === `/products/${product.id}/conversations/${conversation.id}`
+                            const isEditingConv = editingItem?.type === 'conversation' && editingItem.id === conversation.id
+                            const convTitle = conversation.title || 'Nova conversa'
 
-                        return (
-                          <div key={conversation.id} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            marginBottom: '2px',
-                          }}>
-                            {isEditingConv ? (
-                              <input
-                                type="text"
-                                defaultValue={convTitle}
-                                onBlur={async (e) => {
-                                  const newTitle = e.target.value.trim()
-                                  if (newTitle && newTitle !== convTitle) {
-                                    try {
-                                      await updateConversationTitle(conversation.id, product.id, newTitle)
-                                    } catch (error) {
-                                      console.error('Error updating conversation:', error)
-                                      alert('Erro ao atualizar título: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
-                                    }
-                                  }
-                                  setEditingItem(null)
-                                  setContextMenu(null)
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.currentTarget.blur()
-                                  } else if (e.key === 'Escape') {
-                                    setEditingItem(null)
-                                  }
-                                }}
-                                autoFocus
-                                style={{
-                                  flex: 1,
-                                  fontSize: '0.85rem',
-                                  padding: '4px 4px',
-                                  border: '1px solid var(--border-subtle)',
-                                  borderRadius: '6px',
-                                  background: 'white',
-                                  outline: 'none',
-                                  position: 'relative',
-                                  zIndex: 1000,
-                                }}
-                              />
-                            ) : (
-                              <>
-                                <Link
-                                  href={`/products/${product.id}/conversations/${conversation.id}`}
-                                  className="conversation-item"
-                                  style={{
-                                    flex: 1,
-                                    fontSize: '0.85rem',
-                                    color: 'var(--text-main)',
-                                    opacity: isConvActive ? 0.9 : 0.6,
-                                    padding: '4px 4px',
-                                    cursor: 'pointer',
-                                    display: 'block',
-                                    textDecoration: 'none',
-                                    transition: 'all 0.2s',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.opacity = '0.8'
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.opacity = isConvActive ? '0.9' : '0.6'
-                                  }}
-                                >
-                                  {convTitle}
-                                </Link>
-                                <div style={{ position: 'relative' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      e.preventDefault()
-                                      const rect = e.currentTarget.getBoundingClientRect()
-                                      setContextMenu({
-                                        type: 'conversation',
-                                        id: conversation.id,
-                                        name: convTitle,
-                                        x: rect.right,
-                                        y: rect.top,
-                                      })
+                            return (
+                              <div key={conversation.id} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                marginBottom: '2px',
+                              }}>
+                                {isEditingConv ? (
+                                  <input
+                                    type="text"
+                                    defaultValue={convTitle}
+                                    onBlur={async (e) => {
+                                      const newTitle = e.target.value.trim()
+                                      if (newTitle && newTitle !== convTitle) {
+                                        try {
+                                          await updateConversationTitle(conversation.id, product.id, newTitle)
+                                        } catch (error) {
+                                          console.error('Error updating conversation:', error)
+                                          alert('Erro ao atualizar título: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
+                                        }
+                                      }
+                                      setEditingItem(null)
+                                      setContextMenu(null)
                                     }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.currentTarget.blur()
+                                      } else if (e.key === 'Escape') {
+                                        setEditingItem(null)
+                                      }
+                                    }}
+                                    autoFocus
                                     style={{
-                                      padding: '2px 6px',
-                                      background: 'transparent',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      fontSize: '0.875rem',
-                                      color: 'var(--text-muted)',
-                                      opacity: 0.6,
-                                      display: 'flex',
-                                      alignItems: 'center',
+                                      flex: 1,
+                                      fontSize: '0.85rem',
+                                      padding: '4px 4px',
+                                      border: '1px solid var(--border-subtle)',
+                                      borderRadius: '6px',
+                                      background: 'white',
+                                      outline: 'none',
+                                      position: 'relative',
+                                      zIndex: 1000,
                                     }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.opacity = '1'
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.opacity = '0.6'
-                                    }}
-                                  >
-                                    ⋯
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )
-                      })}
+                                  />
+                                ) : (
+                                  <>
+                                    <Link
+                                      href={`/products/${product.id}/conversations/${conversation.id}`}
+                                      className="conversation-item"
+                                      style={{
+                                        flex: 1,
+                                        fontSize: '0.85rem',
+                                        color: 'var(--text-main)',
+                                        opacity: isConvActive ? 0.9 : 0.6,
+                                        padding: '4px 4px',
+                                        cursor: 'pointer',
+                                        display: 'block',
+                                        textDecoration: 'none',
+                                        transition: 'all 0.2s',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.opacity = '0.8'
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.opacity = isConvActive ? '0.9' : '0.6'
+                                      }}
+                                    >
+                                      {convTitle}
+                                    </Link>
+                                    <div style={{ position: 'relative' }}>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          e.preventDefault()
+                                          const rect = e.currentTarget.getBoundingClientRect()
+                                          setContextMenu({
+                                            type: 'conversation',
+                                            id: conversation.id,
+                                            name: convTitle,
+                                            x: rect.right,
+                                            y: rect.top,
+                                          })
+                                        }}
+                                        style={{
+                                          padding: '2px 6px',
+                                          background: 'transparent',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          fontSize: '0.875rem',
+                                          color: 'var(--text-muted)',
+                                          opacity: 0.6,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.opacity = '1'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.opacity = '0.6'
+                                        }}
+                                      >
+                                        ⋯
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )
+                          })
+                        )}
                       </div>
                     )
-                  })()}
                   )}
                 </div>
               )
