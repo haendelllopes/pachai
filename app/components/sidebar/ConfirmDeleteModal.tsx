@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean
@@ -34,7 +35,8 @@ export default function ConfirmDeleteModal({
 
   if (!isOpen) return null
 
-  return (
+  // Renderizar modal usando Portal para garantir que fique acima de tudo
+  const modalContent = (
     <div
       style={{
         position: 'fixed',
@@ -48,7 +50,7 @@ export default function ConfirmDeleteModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 9999,
+        zIndex: 99999, // Z-index muito alto para garantir que fique acima de tudo
         pointerEvents: 'auto',
       }}
       onClick={onClose}
@@ -62,7 +64,7 @@ export default function ConfirmDeleteModal({
           width: '90%',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
           position: 'relative',
-          zIndex: 10000,
+          zIndex: 100000,
           pointerEvents: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -103,8 +105,6 @@ export default function ConfirmDeleteModal({
           display: 'flex',
           gap: '0.75rem',
           justifyContent: 'flex-end',
-          position: 'relative',
-          zIndex: 10001,
         }}>
           <button
             onClick={onClose}
@@ -116,9 +116,6 @@ export default function ConfirmDeleteModal({
               fontSize: '0.875rem',
               cursor: 'pointer',
               color: 'var(--text-main)',
-              position: 'relative',
-              zIndex: 10002,
-              pointerEvents: 'auto',
             }}
           >
             Cancelar
@@ -136,9 +133,6 @@ export default function ConfirmDeleteModal({
               fontSize: '0.875rem',
               cursor: 'pointer',
               color: 'white',
-              position: 'relative',
-              zIndex: 10002,
-              pointerEvents: 'auto',
             }}
           >
             Excluir
@@ -147,5 +141,10 @@ export default function ConfirmDeleteModal({
       </div>
     </div>
   )
+
+  // Usar Portal para renderizar no body, garantindo que fique acima de tudo
+  return typeof window !== 'undefined' 
+    ? createPortal(modalContent, document.body)
+    : null
 }
 
