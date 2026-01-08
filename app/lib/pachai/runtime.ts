@@ -7,6 +7,8 @@ import { getConversationMessages, getConversation } from './db'
 import { getPreviousVeredicts, getVeredictsForContext } from './agent'
 import { getConversationAttachments } from './attachments'
 import { getConversationSummary } from './reopen'
+import { getProductContext } from './product-context'
+import { shouldSuggestContextConsolidation } from './context-detection'
 import { Message } from './agent'
 import OpenAI from 'openai'
 import { createClient } from '@/app/lib/supabase/server'
@@ -19,28 +21,102 @@ type PachaiRuntimeInput = {
 }
 
 /**
+ * Separa vereditos globais e do produto
+ */
+async function getVeredictsSeparated(
+  productId: string,
+  supabase: any
+): Promise<{ global: Array<{ content: string }>; product: Array<{ content: string }> }> {
+  const global: Array<{ content: string }> = []
+  const product: Array<{ content: string }> = []
+
+  // 1. Buscar vereditos globais (máximo 3)
+  const { data: globalVeredicts, error: globalError } = await supabase
+    .from('veredicts')
+    .select('title, content, pain, value')
+    .eq('scope', 'global')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  if (!globalError && globalVeredicts) {
+    for (const v of globalVeredicts) {
+      if (v.content) {
+        global.push({ content: v.content })
+      } else if (v.pain && v.value) {
+        global.push({ content: `Dor: ${v.pain}\nValor: ${v.value}` })
+      }
+    }
+  }
+
+  // 2. Buscar vereditos do projeto (máximo 3)
+  const { data: projectVeredicts, error: projectError } = await supabase
+    .from('veredicts')
+    .select('title, content, pain, value')
+    .eq('product_id', productId)
+    .or('scope.is.null,scope.eq.project')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  if (!projectError && projectVeredicts) {
+    for (const v of projectVeredicts) {
+      if (v.content) {
+        product.push({ content: v.content })
+      } else if (v.pain && v.value) {
+        product.push({ content: `Dor: ${v.pain}\nValor: ${v.value}` })
+      }
+    }
+  }
+
+  return { global, product }
+}
+
+/**
  * Constrói contexto ordenado para o Pachai
- * Ordem: Vereditos → Anexos → Mensagens
+ * Ordem: Contexto Cognitivo do Produto → Vereditos Globais → Vereditos do Produto → Anexos → Mensagens
  */
 function buildContextString(
-  veredicts: Array<{ content: string }>,
+  productContext: string | null,
+  veredictsGlobal: Array<{ content: string }>,
+  veredictsProduct: Array<{ content: string }>,
   attachments: Array<{ extracted_text: string }>,
   messages: Message[]
 ): string {
   let context = ''
 
-  // 1. Vereditos (globais → projeto, ordem determinística)
-  if (veredicts.length > 0) {
+  // 0. Contexto Cognitivo do Produto (NOVO - sempre no topo)
+  if (productContext) {
     context += `
 ━━━━━━━━━━━━━━━━━━
-CONTEXTO: Vereditos (Memória Deliberada)
+CONTEXTO COGNITIVO DO PRODUTO
 ━━━━━━━━━━━━━━━━━━
 
-${veredicts.map((v, i) => `${i + 1}. ${v.content}`).join('\n\n')}
+${productContext}
 `
   }
 
-  // 2. Anexos da conversa (extracted_text se disponível)
+  // 1. Vereditos Globais
+  if (veredictsGlobal.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Vereditos Globais (Memória Deliberada)
+━━━━━━━━━━━━━━━━━━
+
+${veredictsGlobal.map((v, i) => `${i + 1}. ${v.content}`).join('\n\n')}
+`
+  }
+
+  // 2. Vereditos do Produto
+  if (veredictsProduct.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Vereditos do Produto (Memória Deliberada)
+━━━━━━━━━━━━━━━━━━
+
+${veredictsProduct.map((v, i) => `${i + 1}. ${v.content}`).join('\n\n')}
+`
+  }
+
+  // 3. Anexos da conversa (extracted_text se disponível)
   if (attachments.length > 0) {
     context += `
 ━━━━━━━━━━━━━━━━━━
@@ -51,7 +127,7 @@ ${attachments.map((a, i) => `Anexo ${i + 1}:\n${a.extracted_text}`).join('\n\n')
 `
   }
 
-  // 3. Mensagens da conversa (já formatadas)
+  // 4. Mensagens da conversa (já formatadas)
   if (messages.length > 0) {
     context += `
 ━━━━━━━━━━━━━━━━━━
@@ -123,6 +199,7 @@ function getPromptForConversationState(params: {
   pauseRequested: boolean
   conversationSummary?: string
   previousVeredicts?: Array<{ pain: string; value: string }>
+  suggestConsolidation?: boolean
 }): { prompt: string; maxHistoryMessages: number } {
   // Prioridade 1: Reabertura (status === 'PAUSED')
   if (params.conversationStatus === 'PAUSED') {
@@ -164,8 +241,32 @@ ${VEREDICT_CONFIRMATION_PROMPT}
   const stateString = stateMap[params.inferredState] || 'exploration'
   
   // Prioridade 5: Fallback para EXPLORATION
+  let prompt = getPromptForState(stateString as ConversationState)
+  
+  // Se deve sugerir consolidação, adicionar instrução explícita ao prompt
+  if (params.suggestConsolidation && stateString === 'exploration') {
+    prompt += `
+
+━━━━━━━━━━━━━━━━━━
+AÇÃO REQUERIDA: Sugerir Consolidação de Contexto
+━━━━━━━━━━━━━━━━━━
+
+Esta é uma das primeiras conversas sobre o produto e ainda não existe um Contexto Cognitivo consolidado.
+O usuário já trouxe informações suficientes sobre o produto.
+
+Você DEVE perguntar explicitamente ao usuário:
+"Deseja que eu consolide isso como o Contexto Cognitivo base do produto?"
+
+IMPORTANTE:
+- NUNCA assuma que deve consolidar automaticamente
+- NUNCA crie contexto sem confirmação explícita
+- Apenas PERGUNTE se deve consolidar
+- Aguarde confirmação antes de qualquer ação
+`
+  }
+  
   return {
-    prompt: getPromptForState(stateString as ConversationState),
+    prompt,
     maxHistoryMessages: 8
   }
 }
@@ -269,34 +370,71 @@ export async function getPachaiResponse({
     )
   }
 
-  // 4. Buscar contexto adicional (vereditos e anexos) se não estiver pausada
-  let veredicts: Array<{ content: string }> = []
+  // 4. Buscar contexto do produto (sempre, se existir)
+  let productContext: string | null = null
+  try {
+    const context = await getProductContext(conversation.product_id)
+    productContext = context?.content_text || null
+  } catch (error) {
+    // Se não tiver permissão ou não existir, continua sem contexto
+    productContext = null
+  }
+
+  // 5. Buscar contexto adicional (vereditos e anexos) se não estiver pausada
+  let veredictsGlobal: Array<{ content: string }> = []
+  let veredictsProduct: Array<{ content: string }> = []
   let attachments: Array<{ extracted_text: string }> = []
 
   if (conversation.status !== 'PAUSED') {
     const supabase = await createClient()
     
-    // Buscar vereditos para contexto (ordem determinística, limites aplicados)
-    veredicts = await getVeredictsForContext(conversation.product_id, supabase)
+    // Buscar vereditos separados (globais e do produto)
+    const veredictsSeparated = await getVeredictsSeparated(conversation.product_id, supabase)
+    veredictsGlobal = veredictsSeparated.global
+    veredictsProduct = veredictsSeparated.product
     
     // Buscar anexos da conversa (limite de injeção de contexto: 2 mais recentes prontos)
     attachments = await getConversationAttachments(conversationId, supabase, 2)
   }
 
-  // 5. Obter prompt usando função centralizada
+  // 6. Verificar se deve sugerir consolidação (apenas em exploration, se não estiver pausada)
+  let suggestConsolidation = false
+  if (
+    conversation.status !== 'PAUSED' &&
+    inferredState === StateEnum.EXPLORATION
+  ) {
+    try {
+      suggestConsolidation = await shouldSuggestContextConsolidation(
+        conversation.product_id,
+        conversationId
+      )
+    } catch (error) {
+      // Se houver erro, não sugerir
+      suggestConsolidation = false
+    }
+  }
+
+  // 7. Obter prompt usando função centralizada
   const { prompt: basePrompt, maxHistoryMessages } = getPromptForConversationState({
     conversationStatus: conversation.status as ConversationStatus,
     inferredState,
     pauseRequested,
     conversationSummary,
-    previousVeredicts
+    previousVeredicts,
+    suggestConsolidation
   })
 
-  // 6. Construir contexto ordenado e adicionar ao prompt
-  const contextString = buildContextString(veredicts, attachments, history)
+  // 8. Construir contexto ordenado e adicionar ao prompt
+  const contextString = buildContextString(
+    productContext,
+    veredictsGlobal,
+    veredictsProduct,
+    attachments,
+    history
+  )
   const systemPrompt = basePrompt + contextString
 
-  // 7. Gerar resposta
+  // 8. Gerar resposta
   return callOpenAI({
     systemPrompt,
     messages: history,

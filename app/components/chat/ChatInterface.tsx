@@ -5,6 +5,8 @@ import Image from 'next/image'
 import MessageBubble from './MessageBubble'
 import ErrorMessage from './ErrorMessage'
 import VeredictForm from './VeredictForm'
+import ContextConsolidationForm from './ContextConsolidationForm'
+import ContextUpdateAfterVeredictForm from './ContextUpdateAfterVeredictForm'
 import AttachmentTrigger from './AttachmentTrigger'
 import AttachmentContextBar from './AttachmentContextBar'
 import { useAttachmentManager } from '@/app/hooks/useAttachmentManager'
@@ -30,6 +32,9 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   const [loading, setLoading] = useState(false)
   const [showVeredictForm, setShowVeredictForm] = useState(false)
   const [suggestedTitle, setSuggestedTitle] = useState('')
+  const [showContextConsolidation, setShowContextConsolidation] = useState(false)
+  const [showContextUpdateAfterVeredict, setShowContextUpdateAfterVeredict] = useState(false)
+  const [pendingVeredict, setPendingVeredict] = useState<{ pain: string; value: string; notes?: string } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
@@ -143,6 +148,7 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
       const data = await response.json()
       const pachaiContent = data.message
+      const suggestContextConsolidation = data.suggestContextConsolidation || false
 
       if (!pachaiContent) {
         throw new Error('Empty response from Pachai')
@@ -150,6 +156,11 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
       // A mensagem já foi salva pela API route, buscar atualizada
       await fetchMessages()
+
+      // Verificar se deve mostrar formulário de consolidação
+      if (suggestContextConsolidation) {
+        setShowContextConsolidation(true)
+      }
       
       // Gerar título automaticamente após 2 mensagens do usuário OU 1 mensagem longa (>200 caracteres)
       // Verificar após buscar mensagens atualizadas
@@ -258,6 +269,23 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
 
       setShowVeredictForm(false)
       setLoading(false)
+
+      // Verificar se existe contexto e perguntar sobre atualização
+      try {
+        const { data: context } = await supabase
+          .from('product_contexts')
+          .select('id')
+          .eq('product_id', productId)
+          .single()
+
+        if (context) {
+          // Existe contexto - perguntar se deseja atualizar
+          setPendingVeredict({ pain, value, notes })
+          setShowContextUpdateAfterVeredict(true)
+        }
+      } catch (error) {
+        // Se não existir contexto, não fazer nada (comportamento normal)
+      }
     } catch (error) {
       console.error('Error saving veredict:', error)
       setLoading(false)
@@ -491,6 +519,36 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
           suggestedTitle={suggestedTitle}
           onConfirm={handleVeredictConfirm}
           onCancel={() => setShowVeredictForm(false)}
+        />
+      )}
+
+      {showContextConsolidation && (
+        <ContextConsolidationForm
+          productId={productId}
+          conversationId={conversationId}
+          onConfirm={() => {
+            setShowContextConsolidation(false)
+            // Recarregar mensagens para mostrar confirmação
+            fetchMessages()
+          }}
+          onCancel={() => setShowContextConsolidation(false)}
+        />
+      )}
+
+      {showContextUpdateAfterVeredict && pendingVeredict && (
+        <ContextUpdateAfterVeredictForm
+          productId={productId}
+          newVeredict={pendingVeredict}
+          onConfirm={() => {
+            setShowContextUpdateAfterVeredict(false)
+            setPendingVeredict(null)
+            // Recarregar mensagens para mostrar confirmação
+            fetchMessages()
+          }}
+          onCancel={() => {
+            setShowContextUpdateAfterVeredict(false)
+            setPendingVeredict(null)
+          }}
         />
       )}
     </>

@@ -154,6 +154,61 @@ export interface Database {
           created_at?: string
         }
       }
+      product_contexts: {
+        Row: {
+          id: string
+          product_id: string
+          content_text: string
+          embedding: string | null // JSON string ou vector, dependendo da disponibilidade da extensão
+          change_reason: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          content_text: string
+          embedding?: string | null
+          change_reason: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          content_text?: string
+          embedding?: string | null
+          change_reason?: string
+          updated_at?: string
+          updated_by?: string
+        }
+      }
+      product_members: {
+        Row: {
+          id: string
+          product_id: string
+          user_id: string
+          role: 'owner' | 'editor' | 'viewer'
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          user_id: string
+          role: 'owner' | 'editor' | 'viewer'
+          created_at?: string
+          created_by: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          user_id?: string
+          role?: 'owner' | 'editor' | 'viewer'
+          created_at?: string
+          created_by?: string
+        }
+      }
     }
   }
 }

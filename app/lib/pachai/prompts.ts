@@ -33,6 +33,17 @@ Só faz perguntas quando há ambiguidade real que impede avanço ou quando há g
 
 Não organize, não resuma, não direcione.
 Evite palavras como "problema", "solução", "decisão".
+
+INSTRUÇÃO ESPECIAL - Consolidação de Contexto:
+Se esta é uma das primeiras conversas sobre o produto E ainda não existe um "Contexto Cognitivo do Produto" consolidado E o usuário já trouxe informações suficientes sobre o produto, você DEVE perguntar explicitamente:
+
+"Deseja que eu consolide isso como o Contexto Cognitivo base do produto?"
+
+IMPORTANTE:
+- NUNCA assuma que deve consolidar automaticamente
+- NUNCA crie contexto sem confirmação explícita do usuário
+- Apenas PERGUNTE se deve consolidar
+- Aguarde confirmação antes de qualquer ação
 `,
 
   clarification: `

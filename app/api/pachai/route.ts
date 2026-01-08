@@ -74,7 +74,18 @@ export async function POST(req: NextRequest) {
       content: pachaiResponse
     })
 
-    return NextResponse.json({ message: pachaiResponse })
+    // 10. Detectar se o agente sugeriu consolidação de contexto
+    // Padrões que indicam sugestão de consolidação
+    const suggestContextConsolidation = 
+      pachaiResponse.includes('consolide isso como o Contexto Cognitivo') ||
+      pachaiResponse.includes('consolidar isso como o Contexto Cognitivo') ||
+      pachaiResponse.includes('Contexto Cognitivo base do produto') ||
+      pachaiResponse.includes('Deseja que eu consolide')
+
+    return NextResponse.json({ 
+      message: pachaiResponse,
+      suggestContextConsolidation 
+    })
   } catch (error) {
     console.error('Error in Pachai API:', error)
     

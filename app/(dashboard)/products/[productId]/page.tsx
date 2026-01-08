@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabase/client'
 import { useProducts } from '@/app/contexts/ProductsContext'
+import ProductContextEditor from '@/app/components/product/ProductContextEditor'
 
 export default function ProductPage() {
   const params = useParams()
@@ -102,6 +103,8 @@ export default function ProductPage() {
           Um espaço para explorar decisões e registrar vereditos conscientes
         </p>
       </div>
+
+      <ProductContextEditor productId={productId} />
 
       {conversations.length === 0 ? (
         <div style={{
