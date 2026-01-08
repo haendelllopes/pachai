@@ -3,10 +3,11 @@ import { detectVeredictSignal } from '@/app/lib/pachai/agent'
 import { getPachaiResponse } from '@/app/lib/pachai/runtime'
 import { getConversationMessages, saveMessage, pauseConversation, getConversation, markConversationReopened } from '@/app/lib/pachai/db'
 import { shouldPauseConversation } from '@/app/lib/pachai/pause'
+import { SearchContext } from '@/app/lib/pachai/search-types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { conversationId, userMessage } = await req.json()
+    const { conversationId, userMessage, searchContext } = await req.json()
 
     if (!conversationId || !userMessage) {
       return NextResponse.json(
@@ -48,11 +49,12 @@ export async function POST(req: NextRequest) {
     // 2) pauseRequested → PAUSE_CONFIRMATION_PROMPT
     // 3) inferredState === 'VEREDICT_CHECK' → VEREDICT_CONFIRMATION_PROMPT
     // 4) outros estados → getPromptForState()
-    const pachaiResponse = await getPachaiResponse({
+    const pachaiOutput = await getPachaiResponse({
       conversationId,
       userMessage,
       pauseRequested,
-      veredictSignal
+      veredictSignal,
+      searchContext: searchContext as SearchContext | undefined // SearchContext temporário quando busca foi confirmada
     })
 
     // 7. Se estava reabrindo (status === 'PAUSED'), marcar conversa como reaberta
@@ -71,20 +73,22 @@ export async function POST(req: NextRequest) {
     await saveMessage({
       conversationId,
       role: 'pachai',
-      content: pachaiResponse
+      content: pachaiOutput.response
     })
 
     // 10. Detectar se o agente sugeriu consolidação de contexto
     // Padrões que indicam sugestão de consolidação
     const suggestContextConsolidation = 
-      pachaiResponse.includes('consolide isso como o Contexto Cognitivo') ||
-      pachaiResponse.includes('consolidar isso como o Contexto Cognitivo') ||
-      pachaiResponse.includes('Contexto Cognitivo base do produto') ||
-      pachaiResponse.includes('Deseja que eu consolide')
+      pachaiOutput.response.includes('consolide isso como o Contexto Cognitivo') ||
+      pachaiOutput.response.includes('consolidar isso como o Contexto Cognitivo') ||
+      pachaiOutput.response.includes('Contexto Cognitivo base do produto') ||
+      pachaiOutput.response.includes('Deseja que eu consolide')
 
     return NextResponse.json({ 
-      message: pachaiResponse,
-      suggestContextConsolidation 
+      message: pachaiOutput.response,
+      suggestContextConsolidation,
+      suggestSearch: pachaiOutput.suggestSearch, // Flag para sugerir busca
+      searchResults: pachaiOutput.searchResults // Resultados quando busca foi executada
     })
   } catch (error) {
     console.error('Error in Pachai API:', error)

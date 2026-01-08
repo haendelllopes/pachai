@@ -1,6 +1,7 @@
 import { BASE_PACHAI_PROMPT } from './prompts/base'
 import { VEREDICT_CONFIRMATION_PROMPT } from './prompts/veredict'
 import { REOPEN_PROMPT } from './prompts/reopen'
+import { SEARCH_RESULTS_PROMPT, SUGGEST_SEARCH_PROMPT } from './prompts/search'
 import { getPromptForState, ConversationState } from './prompts'
 import { inferConversationStateFromMessages, VeredictSignal, ConversationStatus, ConversationState as StateEnum } from './states'
 import { getConversationMessages, getConversation } from './db'
@@ -9,6 +10,9 @@ import { getConversationAttachments } from './attachments'
 import { getConversationSummary } from './reopen'
 import { getProductContext } from './product-context'
 import { shouldSuggestContextConsolidation } from './context-detection'
+import { detectExplicitSearchIntent, shouldSuggestSearch } from './search-detection'
+import { executeExternalSearch } from './search-execution'
+import { SearchContext, SearchResult } from './search-types'
 import { Message } from './agent'
 import OpenAI from 'openai'
 import { createClient } from '@/app/lib/supabase/server'
@@ -18,6 +22,13 @@ type PachaiRuntimeInput = {
   userMessage: string
   pauseRequested: boolean
   veredictSignal?: VeredictSignal
+  searchContext?: SearchContext // NOVO: SearchContext temporário
+}
+
+type PachaiRuntimeOutput = {
+  response: string
+  suggestSearch?: { query: string } // Flag para sugerir busca
+  searchResults?: { query: string; results: SearchResult[] } // Resultados quando busca foi executada
 }
 
 /**
@@ -72,10 +83,13 @@ async function getVeredictsSeparated(
 
 /**
  * Constrói contexto ordenado para o Pachai
- * Ordem: Contexto Cognitivo do Produto → Vereditos Globais → Vereditos do Produto → Anexos → Mensagens
+ * Ordem obrigatória: Contexto Cognitivo do Produto → Search Context (temporário) → Vereditos → Anexos → Mensagens
+ * 
+ * 📌 Produto sempre vem antes do mundo externo.
  */
 function buildContextString(
   productContext: string | null,
+  searchContext: SearchContext | null,
   veredictsGlobal: Array<{ content: string }>,
   veredictsProduct: Array<{ content: string }>,
   attachments: Array<{ extracted_text: string }>,
@@ -83,7 +97,7 @@ function buildContextString(
 ): string {
   let context = ''
 
-  // 0. Contexto Cognitivo do Produto (NOVO - sempre no topo)
+  // 0. Contexto Cognitivo do Produto (sempre no topo)
   if (productContext) {
     context += `
 ━━━━━━━━━━━━━━━━━━
@@ -91,6 +105,27 @@ CONTEXTO COGNITIVO DO PRODUTO
 ━━━━━━━━━━━━━━━━━━
 
 ${productContext}
+`
+  }
+
+  // 0.5. Search Context (temporário) - após Contexto Cognitivo, antes de Vereditos
+  if (searchContext && searchContext.results.length > 0) {
+    context += `
+━━━━━━━━━━━━━━━━━━
+CONTEXTO: Referências Externas (Temporárias)
+━━━━━━━━━━━━━━━━━━
+
+Busca realizada: "${searchContext.query}"
+
+${searchContext.results.map((result, i) => `
+${i + 1}. ${result.title}
+   Fonte: ${result.source}
+   ${result.snippet}
+   URL: ${result.url}
+`).join('\n')}
+
+⚠️ Estes resultados são referências externas.
+Use como insumo de raciocínio, não como verdade absoluta.
 `
   }
 
@@ -200,6 +235,8 @@ function getPromptForConversationState(params: {
   conversationSummary?: string
   previousVeredicts?: Array<{ pain: string; value: string }>
   suggestConsolidation?: boolean
+  hasSearchContext?: boolean
+  shouldSuggestSearch?: boolean
 }): { prompt: string; maxHistoryMessages: number } {
   // Prioridade 1: Reabertura (status === 'PAUSED')
   if (params.conversationStatus === 'PAUSED') {
@@ -242,6 +279,22 @@ ${VEREDICT_CONFIRMATION_PROMPT}
   
   // Prioridade 5: Fallback para EXPLORATION
   let prompt = getPromptForState(stateString as ConversationState)
+  
+  // Se tem SearchContext, adicionar prompt de uso de resultados
+  if (params.hasSearchContext) {
+    prompt += `
+
+${SEARCH_RESULTS_PROMPT}
+`
+  }
+  
+  // Se deve sugerir busca, adicionar prompt de sugestão
+  if (params.shouldSuggestSearch) {
+    prompt += `
+
+${SUGGEST_SEARCH_PROMPT}
+`
+  }
   
   // Se deve sugerir consolidação, adicionar instrução explícita ao prompt
   if (params.suggestConsolidation && stateString === 'exploration') {
@@ -337,18 +390,43 @@ async function callOpenAI(params: {
  * 3. inferredState === 'VEREDICT_CHECK' → VEREDICT_CONFIRMATION_PROMPT
  * 4. Outros estados → getPromptForState()
  * 5. Fallback → EXPLORATION
+ * 
+ * Integração de busca:
+ * - Detecta intenção explícita de busca
+ * - Executa busca se necessário
+ * - Detecta se deve sugerir busca
+ * - Injeta SearchContext no contexto ordenado
  */
 export async function getPachaiResponse({
   conversationId,
   userMessage,
   pauseRequested,
-  veredictSignal
-}: PachaiRuntimeInput): Promise<string> {
+  veredictSignal,
+  searchContext: providedSearchContext
+}: PachaiRuntimeInput): Promise<PachaiRuntimeOutput> {
   // 1. Buscar informações da conversa (incluindo status)
   const conversation = await getConversation(conversationId)
   
   // 2. Buscar histórico de mensagens
   const history = await getConversationMessages(conversationId)
+
+  // 2.5. Processar busca externa (antes de inferir estado)
+  let searchContext: SearchContext | null = providedSearchContext || null
+  let suggestSearchQuery: string | null = null
+
+  // Se não foi fornecido SearchContext, verificar se há intenção explícita de busca
+  if (!searchContext && conversation.status !== 'PAUSED') {
+    const explicitIntent = detectExplicitSearchIntent(userMessage)
+    if (explicitIntent) {
+      // Executar busca explícita
+      const results = await executeExternalSearch(explicitIntent.query)
+      searchContext = {
+        query: explicitIntent.query,
+        results,
+        executedAt: new Date().toISOString()
+      }
+    }
+  }
 
   // 3. Inferir estado apenas se conversa não estiver pausada
   // Se estiver pausada, não inferir (reabertura tem prioridade máxima)
@@ -397,7 +475,25 @@ export async function getPachaiResponse({
     attachments = await getConversationAttachments(conversationId, supabase, 2)
   }
 
-  // 6. Verificar se deve sugerir consolidação (apenas em exploration, se não estiver pausada)
+  // 6. Verificar se deve sugerir busca (apenas se não há busca explícita e não está pausada)
+  let shouldSuggest = false
+  if (
+    !searchContext &&
+    conversation.status !== 'PAUSED' &&
+    (inferredState === StateEnum.EXPLORATION || inferredState === StateEnum.CLARIFICATION)
+  ) {
+    const conversationContext = history.map(m => m.content).join('\n')
+    shouldSuggest = shouldSuggestSearch(inferredState, conversationContext, userMessage)
+    
+    // Se deve sugerir, extrair query sugerida (simplificado - pode ser melhorado)
+    if (shouldSuggest) {
+      // Tentar extrair query da mensagem do usuário ou contexto
+      const queryMatch = userMessage.match(/(?:sobre|de|em)\s+(.+)/i)
+      suggestSearchQuery = queryMatch ? queryMatch[1].trim() : userMessage.trim()
+    }
+  }
+
+  // 7. Verificar se deve sugerir consolidação (apenas em exploration, se não estiver pausada)
   let suggestConsolidation = false
   if (
     conversation.status !== 'PAUSED' &&
@@ -414,19 +510,22 @@ export async function getPachaiResponse({
     }
   }
 
-  // 7. Obter prompt usando função centralizada
+  // 8. Obter prompt usando função centralizada
   const { prompt: basePrompt, maxHistoryMessages } = getPromptForConversationState({
     conversationStatus: conversation.status as ConversationStatus,
     inferredState,
     pauseRequested,
     conversationSummary,
     previousVeredicts,
-    suggestConsolidation
+    suggestConsolidation,
+    hasSearchContext: searchContext !== null && searchContext.results.length > 0,
+    shouldSuggestSearch: shouldSuggest
   })
 
-  // 8. Construir contexto ordenado e adicionar ao prompt
+  // 9. Construir contexto ordenado e adicionar ao prompt
   const contextString = buildContextString(
     productContext,
+    searchContext,
     veredictsGlobal,
     veredictsProduct,
     attachments,
@@ -434,12 +533,31 @@ export async function getPachaiResponse({
   )
   const systemPrompt = basePrompt + contextString
 
-  // 8. Gerar resposta
-  return callOpenAI({
+  // 10. Gerar resposta
+  const response = await callOpenAI({
     systemPrompt,
     messages: history,
     userMessage,
     maxHistoryMessages
   })
+
+  // 11. Retornar resposta com flag de sugestão de busca e resultados se necessário
+  const output: PachaiRuntimeOutput = {
+    response
+  }
+
+  if (shouldSuggest && suggestSearchQuery) {
+    output.suggestSearch = { query: suggestSearchQuery }
+  }
+
+  // Incluir resultados de busca se foram executados
+  if (searchContext && searchContext.results.length > 0) {
+    output.searchResults = {
+      query: searchContext.query,
+      results: searchContext.results
+    }
+  }
+
+  return output
 }
 

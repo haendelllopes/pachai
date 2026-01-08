@@ -9,9 +9,12 @@ import ContextConsolidationForm from './ContextConsolidationForm'
 import ContextUpdateAfterVeredictForm from './ContextUpdateAfterVeredictForm'
 import AttachmentTrigger from './AttachmentTrigger'
 import AttachmentContextBar from './AttachmentContextBar'
+import SearchConfirmation from './SearchConfirmation'
+import SearchResults from './SearchResults'
 import { useAttachmentManager } from '@/app/hooks/useAttachmentManager'
 import { createClient } from '@/app/lib/supabase/client'
 import { useProducts } from '@/app/contexts/ProductsContext'
+import { SearchResult } from '@/app/lib/pachai/search-types'
 
 interface Message {
   id: string
@@ -35,6 +38,8 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
   const [showContextConsolidation, setShowContextConsolidation] = useState(false)
   const [showContextUpdateAfterVeredict, setShowContextUpdateAfterVeredict] = useState(false)
   const [pendingVeredict, setPendingVeredict] = useState<{ pain: string; value: string; notes?: string } | null>(null)
+  const [pendingSearch, setPendingSearch] = useState<{ query: string } | null>(null)
+  const [searchResults, setSearchResults] = useState<{ query: string; results: SearchResult[] } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
@@ -114,6 +119,10 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     setInput('')
     setLoading(true)
     
+    // Limpar resultados de busca anteriores e busca pendente
+    setSearchResults(null)
+    setPendingSearch(null)
+    
     // Resetar altura e restaurar foco no input após limpar o campo
     requestAnimationFrame(() => {
       if (inputRef.current) {
@@ -149,6 +158,8 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       const data = await response.json()
       const pachaiContent = data.message
       const suggestContextConsolidation = data.suggestContextConsolidation || false
+      const suggestSearch = data.suggestSearch || null
+      const searchResults = data.searchResults || null
 
       if (!pachaiContent) {
         throw new Error('Empty response from Pachai')
@@ -160,6 +171,19 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
       // Verificar se deve mostrar formulário de consolidação
       if (suggestContextConsolidation) {
         setShowContextConsolidation(true)
+      }
+
+      // Verificar se Pachai sugeriu busca
+      if (suggestSearch && suggestSearch.query) {
+        setPendingSearch({ query: suggestSearch.query })
+      }
+
+      // Armazenar resultados de busca se foram executados (busca explícita)
+      if (searchResults && searchResults.results && searchResults.results.length > 0) {
+        setSearchResults({
+          query: searchResults.query,
+          results: searchResults.results
+        })
       }
       
       // Gerar título automaticamente após 2 mensagens do usuário OU 1 mensagem longa (>200 caracteres)
@@ -231,6 +255,78 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
     requestAnimationFrame(() => {
       inputRef.current?.focus()
     })
+  }
+
+  async function handleSearchConfirm() {
+    if (!pendingSearch) return
+
+    setLoading(true)
+    try {
+      // Chamar API de busca
+      const searchResponse = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversationId,
+          query: pendingSearch.query,
+        }),
+      })
+
+      if (!searchResponse.ok) {
+        throw new Error('Failed to execute search')
+      }
+
+      const searchData = await searchResponse.json()
+      
+      // Armazenar resultados para exibição
+      setSearchResults({
+        query: searchData.query,
+        results: searchData.results || []
+      })
+
+      // Enviar nova mensagem confirmando a busca com SearchContext
+      const confirmMessage = `Sim, pesquise sobre ${pendingSearch.query}`
+      
+      const searchContext = {
+        query: searchData.query,
+        results: searchData.results || [],
+        executedAt: new Date().toISOString()
+      }
+      
+      const response = await fetch('/api/pachai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversationId,
+          userMessage: confirmMessage,
+          searchContext, // Passar SearchContext para o runtime
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response')
+      }
+
+      // Buscar mensagens atualizadas
+      await fetchMessages()
+      
+      // Limpar busca pendente
+      setPendingSearch(null)
+    } catch (error) {
+      console.error('Error confirming search:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleSearchCancel() {
+    setPendingSearch(null)
   }
 
   async function handleVeredictConfirm(title: string, pain: string, value: string, notes?: string) {
@@ -384,16 +480,35 @@ export default function ChatInterface({ productId, conversationId }: ChatInterfa
                 
                 // Passar mensagem anterior para detectar mensagens consecutivas do Pachai
                 const previousMessage = index > 0 ? messages[index - 1] : null
+                const isLastMessage = index === messages.length - 1
+                
                 return (
-                  <MessageBubble
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    isFirst={index === 0}
-                    previousMessage={previousMessage && !previousMessage.isError ? previousMessage : null}
-                  />
+                  <div key={message.id}>
+                    <MessageBubble
+                      role={message.role}
+                      content={message.content}
+                      isFirst={index === 0}
+                      previousMessage={previousMessage && !previousMessage.isError ? previousMessage : null}
+                    />
+                    {/* Mostrar resultados de busca após última mensagem do Pachai se houver busca explícita */}
+                    {isLastMessage && message.role === 'pachai' && searchResults && (
+                      <div className="mt-2">
+                        <SearchResults query={searchResults.query} results={searchResults.results} />
+                      </div>
+                    )}
+                  </div>
                 )
               })}
+              {/* Mostrar confirmação de busca após última mensagem */}
+              {pendingSearch && (
+                <div className="mt-4">
+                  <SearchConfirmation
+                    query={pendingSearch.query}
+                    onConfirm={handleSearchConfirm}
+                    onCancel={handleSearchCancel}
+                  />
+                </div>
+              )}
               {loading && (
                 <div
                   style={{

@@ -12,9 +12,14 @@ Crie um arquivo `.env.local` na raiz do projeto com o seguinte conteúdo:
 NEXT_PUBLIC_SUPABASE_URL=https://aznkixldjikctoruonuo.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_chave_anon_do_projeto>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+OPENAI_API_KEY=<sua_chave_openai>
+TAVILY_API_KEY=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
 ```
 
-**IMPORTANTE:** Substitua `<sua_chave_anon_do_projeto>` pela chave anon do projeto correto (encontre em Settings → API → Project API keys).
+**IMPORTANTE:** 
+- Substitua `<sua_chave_anon_do_projeto>` pela chave anon do projeto correto (encontre em Settings → API → Project API keys).
+- Substitua `<sua_chave_openai>` pela sua chave da API da OpenAI (obtenha em https://platform.openai.com/api-keys).
+- A `TAVILY_API_KEY` já está configurada para busca externa consciente.
 
 ## Banco de Dados
 
