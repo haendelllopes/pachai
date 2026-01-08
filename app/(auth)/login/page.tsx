@@ -77,15 +77,33 @@ export default function LoginPage() {
 
       // Aguardar data.session antes de atualizar
       if (result.data?.session) {
-        console.log('SignUp success, session established, navigating to /products...')
-        router.push('/products')
+        console.log('SignUp success, session established')
+        // Verificar se há convite pendente
+        const pendingInviteToken = sessionStorage.getItem('pending_invite_token')
+        if (pendingInviteToken) {
+          sessionStorage.removeItem('pending_invite_token')
+          router.push(`/invite/${pendingInviteToken}`)
+        } else {
+          // Verificar redirect da URL
+          const redirect = new URLSearchParams(window.location.search).get('redirect')
+          router.push(redirect || '/products')
+        }
       } else if (result.data?.user) {
         // Se não houver sessão imediatamente, aguardar e verificar novamente
         await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established after wait, navigating to /products...')
-          router.push('/products')
+          console.log('Session established after wait')
+          // Verificar se há convite pendente
+          const pendingInviteToken = sessionStorage.getItem('pending_invite_token')
+          if (pendingInviteToken) {
+            sessionStorage.removeItem('pending_invite_token')
+            router.push(`/invite/${pendingInviteToken}`)
+          } else {
+            // Verificar redirect da URL
+            const redirect = new URLSearchParams(window.location.search).get('redirect')
+            router.push(redirect || '/products')
+          }
         } else {
           console.error('Session not established yet')
           setError('Erro ao estabelecer sessão. Tente novamente.')
@@ -138,15 +156,33 @@ export default function LoginPage() {
 
       // Aguardar data.session antes de navegar
       if (result.data?.session) {
-        console.log('Session established, navigating to /products...')
-        router.push('/products')
+        console.log('Session established')
+        // Verificar se há convite pendente
+        const pendingInviteToken = sessionStorage.getItem('pending_invite_token')
+        if (pendingInviteToken) {
+          sessionStorage.removeItem('pending_invite_token')
+          router.push(`/invite/${pendingInviteToken}`)
+        } else {
+          // Verificar redirect da URL
+          const redirect = new URLSearchParams(window.location.search).get('redirect')
+          router.push(redirect || '/products')
+        }
       } else {
         // Se não houver sessão imediatamente, aguardar e verificar novamente
         await new Promise(resolve => setTimeout(resolve, 300))
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          console.log('Session established after wait, navigating to /products...')
-          router.push('/products')
+          console.log('Session established after wait')
+          // Verificar se há convite pendente
+          const pendingInviteToken = sessionStorage.getItem('pending_invite_token')
+          if (pendingInviteToken) {
+            sessionStorage.removeItem('pending_invite_token')
+            router.push(`/invite/${pendingInviteToken}`)
+          } else {
+            // Verificar redirect da URL
+            const redirect = new URLSearchParams(window.location.search).get('redirect')
+            router.push(redirect || '/products')
+          }
         } else {
           console.error('Session not established')
           setError('Erro ao estabelecer sessão. Tente novamente.')

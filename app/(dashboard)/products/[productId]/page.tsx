@@ -13,20 +13,66 @@ export default function ProductPage() {
   
   const { products, conversationsByProduct, fetchProducts, fetchConversations } = useProducts()
   const [creatingConversation, setCreatingConversation] = useState(false)
+  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null)
 
   // Buscar produto e conversas quando a página carregar
   useEffect(() => {
     if (productId) {
       fetchProducts()
-      fetchConversations(productId)
+      checkUserRole()
+      // Apenas buscar conversas se não for viewer
+      checkUserRole().then(role => {
+        if (role !== 'viewer') {
+          fetchConversations(productId)
+        }
+      })
     }
   }, [productId, fetchProducts, fetchConversations])
+
+  async function checkUserRole() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      setUserRole(null)
+      return null
+    }
+
+    // Verificar role via product_members
+    const { data: member } = await supabase
+      .from('product_members')
+      .select('role')
+      .eq('product_id', productId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (member) {
+      setUserRole(member.role as 'owner' | 'editor' | 'viewer')
+      return member.role as 'owner' | 'editor' | 'viewer'
+    }
+
+    // Fallback: verificar se é owner original
+    const { data: product } = await supabase
+      .from('products')
+      .select('user_id')
+      .eq('id', productId)
+      .single()
+
+    if (product && product.user_id === user.id) {
+      setUserRole('owner')
+      return 'owner'
+    }
+
+    setUserRole(null)
+    return null
+  }
 
   // Obter dados do contexto
   const product = products.find(p => p.id === productId)
   const productName = product?.name || ''
-  const conversations = conversationsByProduct[productId] || []
+  const conversations = userRole !== 'viewer' ? (conversationsByProduct[productId] || []) : []
   const loading = !product && products.length > 0
+  const isViewer = userRole === 'viewer'
 
   async function handleCreateConversation() {
     if (creatingConversation) return
@@ -106,7 +152,28 @@ export default function ProductPage() {
 
       <ProductContextEditor productId={productId} />
 
-      {conversations.length === 0 ? (
+      {isViewer ? (
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+        }}>
+          <div style={{
+            maxWidth: '500px',
+            textAlign: 'center',
+          }}>
+            <p style={{
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: '#666',
+            }}>
+              Você tem acesso apenas ao contexto cognitivo e aos vereditos deste produto. Conversas são privadas e não são compartilhadas.
+            </p>
+          </div>
+        </div>
+      ) : conversations.length === 0 ? (
         <div style={{
           flex: 1,
           display: 'flex',

@@ -36,16 +36,57 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
   const fetchProducts = useCallback(async () => {
     const supabase = createClient()
-    const { data, error } = await supabase
+    
+    // Buscar produtos onde usuário é owner original OU member via product_members
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      setProducts([])
+      setLoading(false)
+      return
+    }
+
+    // Buscar produtos onde usuário é owner original
+    const { data: ownedProducts, error: ownedError } = await supabase
       .from('products')
       .select('id, name')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching products:', error)
-    } else {
-      setProducts(data || [])
+    // Buscar produtos onde usuário é member
+    const { data: memberProducts, error: memberError } = await supabase
+      .from('product_members')
+      .select('product_id, products(id, name)')
+      .eq('user_id', user.id)
+
+    if (ownedError || memberError) {
+      console.error('Error fetching products:', ownedError || memberError)
+      setProducts([])
+      setLoading(false)
+      return
     }
+
+    // Combinar produtos únicos
+    const allProducts = new Map<string, Product>()
+    
+    // Adicionar produtos próprios
+    if (ownedProducts) {
+      ownedProducts.forEach(p => allProducts.set(p.id, p))
+    }
+    
+    // Adicionar produtos onde é member
+    if (memberProducts) {
+      memberProducts.forEach(m => {
+        const product = (m.products as any) as Product
+        if (product && !allProducts.has(product.id)) {
+          allProducts.set(product.id, product)
+        }
+      })
+    }
+
+    // Converter para array e ordenar por created_at (aproximado - produtos próprios primeiro)
+    const productsArray = Array.from(allProducts.values())
+    setProducts(productsArray)
     setLoading(false)
   }, [])
 

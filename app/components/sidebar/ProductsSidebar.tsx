@@ -37,6 +37,7 @@ export default function ProductsSidebar() {
   const [userName, setUserName] = useState<string>('')
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false)
+  const [productRoles, setProductRoles] = useState<Record<string, 'owner' | 'editor' | 'viewer'>>({})
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = useState<{
     type: 'product' | 'conversation'
@@ -95,6 +96,50 @@ export default function ProductsSidebar() {
     fetchUser()
   }, [])
 
+  // Buscar roles dos produtos
+  useEffect(() => {
+    async function fetchProductRoles() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) return
+
+      const roles: Record<string, 'owner' | 'editor' | 'viewer'> = {}
+
+      // Buscar roles via product_members
+      const { data: members } = await supabase
+        .from('product_members')
+        .select('product_id, role')
+        .eq('user_id', user.id)
+
+      if (members) {
+        members.forEach(m => {
+          roles[m.product_id] = m.role as 'owner' | 'editor' | 'viewer'
+        })
+      }
+
+      // Verificar produtos próprios (fallback)
+      const { data: ownedProducts } = await supabase
+        .from('products')
+        .select('id')
+        .eq('user_id', user.id)
+
+      if (ownedProducts) {
+        ownedProducts.forEach(p => {
+          if (!roles[p.id]) {
+            roles[p.id] = 'owner'
+          }
+        })
+      }
+
+      setProductRoles(roles)
+    }
+
+    if (products.length > 0) {
+      fetchProductRoles()
+    }
+  }, [products])
+
 
   function toggleProduct(productId: string) {
     const newExpanded = new Set(expandedProducts)
@@ -108,6 +153,14 @@ export default function ProductsSidebar() {
   }
 
   async function handleCreateConversation(productId: string) {
+    const userRole = productRoles[productId]
+    const isViewer = userRole === 'viewer'
+    
+    // Viewers não podem criar conversas
+    if (isViewer) {
+      return
+    }
+    
     const supabase = createClient()
     const { data: newConversation, error } = await supabase
       .from('conversations')
@@ -563,16 +616,51 @@ export default function ProductsSidebar() {
                   </div>
 
                   {/* Conversations List */}
-                  {!collapsed && isExpanded && (
-                    <div
-                      className="conversation-list"
-                      style={{
-                        marginLeft: '12px',
-                        marginTop: '4px',
-                        marginBottom: '8px',
-                      }}
-                    >
-                      {conversations.map((conversation) => {
+                  {!collapsed && isExpanded && (() => {
+                    const userRole = productRoles[product.id]
+                    const isViewer = userRole === 'viewer'
+                    
+                    // Se for viewer, não mostrar conversas
+                    if (isViewer) {
+                      return (
+                        <div
+                          style={{
+                            marginLeft: '12px',
+                            marginTop: '4px',
+                            marginBottom: '8px',
+                            padding: '8px',
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            opacity: 0.6,
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          Você tem acesso apenas ao contexto e vereditos deste produto. Conversas são privadas.
+                        </div>
+                      )
+                    }
+                    
+                    return (
+                      <div
+                        className="conversation-list"
+                        style={{
+                          marginLeft: '12px',
+                          marginTop: '4px',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        {conversations.length === 0 ? (
+                          <div style={{
+                            padding: '4px 4px',
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            opacity: 0.5,
+                            fontStyle: 'italic',
+                          }}>
+                            Nenhuma conversa
+                          </div>
+                        ) : (
+                          conversations.map((conversation) => {
                         const isConvActive = pathname === `/products/${product.id}/conversations/${conversation.id}`
                         const isEditingConv = editingItem?.type === 'conversation' && editingItem.id === conversation.id
                         const convTitle = conversation.title || 'Nova conversa'
@@ -685,8 +773,10 @@ export default function ProductsSidebar() {
                             )}
                           </div>
                         )
-                      })}
-                    </div>
+                      }))}
+                      </div>
+                    )
+                  })()}
                   )}
                 </div>
               )

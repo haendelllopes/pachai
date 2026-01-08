@@ -276,6 +276,41 @@ export interface Database {
           was_blocked?: boolean
         }
       }
+      product_invitations: {
+        Row: {
+          id: string
+          product_id: string
+          email: string
+          role: 'editor' | 'viewer'
+          token: string
+          invited_by: string
+          status: 'pending' | 'accepted' | 'expired'
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          email: string
+          role: 'editor' | 'viewer'
+          token?: string
+          invited_by: string
+          status?: 'pending' | 'accepted' | 'expired'
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          email?: string
+          role?: 'editor' | 'viewer'
+          token?: string
+          invited_by?: string
+          status?: 'pending' | 'accepted' | 'expired'
+          created_at?: string
+          expires_at?: string
+        }
+      }
     }
   }
 }

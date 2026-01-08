@@ -43,6 +43,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Permitir acesso público à rota /invite/[token]
+  const pathname = request.nextUrl.pathname
+  if (pathname.startsWith('/invite/')) {
+    // Permitir acesso sem autenticação
+    await supabase.auth.getSession()
+    return response
+  }
+
   // Sempre atualizar sessão (mantém cookies frescos)
   // Isso atualiza automaticamente os cookies de autenticação
   await supabase.auth.getSession()
@@ -51,6 +59,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/products/:path*', '/login', '/api/:path*'],
+  matcher: ['/products/:path*', '/login', '/api/:path*', '/invite/:path*'],
 }
 

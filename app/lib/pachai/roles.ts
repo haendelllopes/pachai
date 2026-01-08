@@ -73,3 +73,15 @@ export async function canCreateVeredict(
   const role = await getUserProductRole(productId, userId)
   return role === 'owner' || role === 'editor'
 }
+
+/**
+ * Verifica se o usuário pode compartilhar o produto
+ * Apenas owner e editor podem compartilhar
+ */
+export async function canShareProduct(
+  productId: string,
+  userId: string
+): Promise<boolean> {
+  const role = await getUserProductRole(productId, userId)
+  return role === 'owner' || role === 'editor'
+}
