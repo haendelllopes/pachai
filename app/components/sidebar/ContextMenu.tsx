@@ -30,13 +30,14 @@ export default function ContextMenu({ items, onClose }: ContextMenuProps) {
       ref={menuRef}
       style={{
         position: 'absolute',
-        background: 'white',
+        background: '#ffffff', // Fundo branco sólido e opaco
         border: '1px solid var(--border-subtle)',
         borderRadius: '6px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)', // Sombra mais forte para destacar
         overflow: 'hidden',
         minWidth: '160px',
-        zIndex: 1000,
+        zIndex: 10000, // Z-index muito alto para garantir que fique acima de tudo
+        isolation: 'isolate', // Cria novo contexto de empilhamento
       }}
     >
       {items.map((item, index) => (
@@ -59,7 +60,7 @@ export default function ContextMenu({ items, onClose }: ContextMenuProps) {
             borderTop: index > 0 ? '1px solid var(--border-subtle)' : 'none',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.03)'
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)' // Hover mais visível
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent'

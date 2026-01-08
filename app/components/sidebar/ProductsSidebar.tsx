@@ -839,7 +839,7 @@ export default function ProductsSidebar() {
           position: 'fixed',
           left: contextMenu.x,
           top: contextMenu.y,
-          zIndex: 1000,
+          zIndex: 10000, // Aumentar para corresponder ao z-index do ContextMenu
         }}>
           <ContextMenu
             items={[
